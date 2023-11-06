@@ -1,0 +1,229 @@
+{
+  "github.com/pkg/errors/@v/v0.1.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.1.0",
+    "Time": "2016-04-24T12:18:34Z"
+  },
+  "github.com/pkg/errors/@v/v0.2.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.2.0",
+    "Time": "2016-04-25T04:42:03Z"
+  },
+  "github.com/pkg/errors/@v/v0.3.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.3.0",
+    "Time": "2016-05-02T19:39:29Z"
+  },
+  "github.com/pkg/errors/@v/v0.4.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.4.0",
+    "Time": "2016-05-10T21:41:07Z"
+  },
+  "github.com/pkg/errors/@v/v0.5.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.5.0",
+    "Time": "2016-05-23T09:19:03Z"
+  },
+  "github.com/pkg/errors/@v/v0.5.1.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.5.1",
+    "Time": "2016-05-24T02:36:43Z"
+  },
+  "github.com/pkg/errors/@v/v0.6.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.6.0",
+    "Time": "2016-06-07T07:26:48Z"
+  },
+  "github.com/pkg/errors/@v/v0.7.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.7.0",
+    "Time": "2016-06-13T02:17:47Z"
+  },
+  "github.com/pkg/errors/@v/v0.7.1.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.7.1",
+    "Time": "2016-08-22T09:00:10Z"
+  },
+  "github.com/pkg/errors/@v/v0.8.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.8.0",
+    "Time": "2016-09-29T01:48:01Z"
+  },
+  "github.com/pkg/errors/@v/v0.8.1.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.8.1",
+    "Time": "2019-01-03T06:52:24Z"
+  },
+  "github.com/pkg/errors/@v/v0.9.0.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.9.0",
+    "Time": "2020-01-07T21:33:24Z"
+  },
+  "github.com/pkg/errors/@v/v0.9.1.info": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.9.1",
+    "Time": "2020-01-14T19:47:44Z"
+  },
+  "github.com/pkg/errors/@latest": {
+    "Path": "github.com/pkg/errors",
+    "Version": "v0.9.1",
+    "Time": "2020-01-14T19:47:44Z"
+  },
+  "github.com/pkg/errors/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.4.0\nv0.5.0\nv0.5.1\nv0.6.0\nv0.7.0\nv0.7.1\nv0.8.0\nv0.8.1\nv0.9.0\nv0.9.1",
+  "golang.org/x/sync/@v/v0.1.0.info": {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.1.0",
+    "Time": "2022-09-29T20:41:14Z"
+  },
+  "golang.org/x/sync/@v/v0.2.0.info": {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.2.0",
+    "Time": "2023-04-19T16:11:59Z"
+  },
+  "golang.org/x/sync/@v/v0.3.0.info": {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.3.0",
+    "Time": "2023-06-01T20:35:10Z"
+  },
+  "golang.org/x/sync/@v/v0.4.0.info": {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.4.0",
+    "Time": "2023-09-26T16:46:49Z"
+  },
+  "golang.org/x/sync/@v/v0.5.0.info": {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.5.0",
+    "Time": "2023-10-11T14:04:17Z"
+  },
+  "golang.org/x/sync/@latest": {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.5.0",
+    "Time": "2023-10-11T14:04:17Z"
+  },
+  "golang.org/x/sync/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.4.0\nv0.5.0",
+  "github.com/cpuguy83/go-md2man/v2/@v/v2.0.0.info": {
+    "Path": "github.com/cpuguy83/go-md2man/v2",
+    "Version": "v2.0.0",
+    "Time": "2019-03-14T23:30:15Z"
+  },
+  "github.com/cpuguy83/go-md2man/v2/@v/v2.0.1.info": {
+    "Path": "github.com/cpuguy83/go-md2man/v2",
+    "Version": "v2.0.1",
+    "Time": "2021-07-16T23:20:56Z"
+  },
+  "github.com/cpuguy83/go-md2man/v2/@v/v2.0.2.info": {
+    "Path": "github.com/cpuguy83/go-md2man/v2",
+    "Version": "v2.0.2",
+    "Time": "2022-04-22T22:25:44Z"
+  },
+  "github.com/cpuguy83/go-md2man/v2/@v/v2.0.3.info": {
+    "Path": "github.com/cpuguy83/go-md2man/v2",
+    "Version": "v2.0.3",
+    "Time": "2023-10-10T18:05:46Z"
+  },
+  "github.com/cpuguy83/go-md2man/v2/@latest": {
+    "Path": "github.com/cpuguy83/go-md2man/v2",
+    "Version": "v2.0.3",
+    "Time": "2023-10-10T18:05:46Z"
+  },
+  "github.com/cpuguy83/go-md2man/v2/@v/list": "v2.0.0\nv2.0.1\nv2.0.2\nv2.0.3",
+  "github.com/xrash/smetrics/@v/v0.0.0-20170218160415-a3153f7040e9.info": {
+    "Path": "github.com/xrash/smetrics",
+    "Version": "v0.0.0-20170218160415-a3153f7040e9",
+    "Time": "2017-02-18T16:04:15Z"
+  },
+  "github.com/xrash/smetrics/@v/v0.0.0-20200723181607-f06e43cca1ab.info": {
+    "Path": "github.com/xrash/smetrics",
+    "Version": "v0.0.0-20200723181607-f06e43cca1ab",
+    "Time": "2020-07-23T18:16:07Z"
+  },
+  "github.com/xrash/smetrics/@v/v0.0.0-20200730060457-89a2a8a1fb0b.info": {
+    "Path": "github.com/xrash/smetrics",
+    "Version": "v0.0.0-20200730060457-89a2a8a1fb0b",
+    "Time": "2020-07-30T06:04:57Z"
+  },
+  "github.com/xrash/smetrics/@v/v0.0.0-20201216005158-039620a65673.info": {
+    "Path": "github.com/xrash/smetrics",
+    "Version": "v0.0.0-20201216005158-039620a65673",
+    "Time": "2020-12-16T00:51:58Z"
+  },
+  "github.com/xrash/smetrics/@latest": {
+    "Path": "github.com/xrash/smetrics",
+    "Version": "v0.0.0-20201216005158-039620a65673",
+    "Time": "2020-12-16T00:51:58Z"
+  },
+  "github.com/xrash/smetrics/@v/list": "v0.0.0-20170218160415-a3153f7040e9\nv0.0.0-20200723181607-f06e43cca1ab\nv0.0.0-20200730060457-89a2a8a1fb0b\nv0.0.0-20201216005158-039620a65673",
+  "github.com/!burnt!sushi/toml/@v/v0.1.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v0.1.0",
+    "Time": "2014-07-17T22:42:52Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v0.2.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v0.2.0",
+    "Time": "2016-03-09T02:19:12Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v0.3.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v0.3.0",
+    "Time": "2017-03-28T06:15:53Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v0.3.1.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v0.3.1",
+    "Time": "2018-08-15T10:47:33Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v0.4.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v0.4.0",
+    "Time": "2021-08-02T07:59:22Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v0.4.1.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v0.4.1",
+    "Time": "2021-08-05T08:14:45Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v1.0.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.0.0",
+    "Time": "2022-01-12T06:57:21Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v1.1.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.1.0",
+    "Time": "2022-04-04T19:53:34Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v1.2.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.2.0",
+    "Time": "2022-06-25T23:55:26Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v1.2.1.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.2.1",
+    "Time": "2022-10-22T08:23:34Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v1.3.0.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.3.0",
+    "Time": "2023-05-30T15:10:12Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v1.3.1.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.3.1",
+    "Time": "2023-06-06T09:25:54Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/v1.3.2.info": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.3.2",
+    "Time": "2023-06-08T06:14:45Z"
+  },
+  "github.com/!burnt!sushi/toml/@latest": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v1.3.2",
+    "Time": "2023-06-08T06:14:45Z"
+  },
+  "github.com/!burnt!sushi/toml/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.3.1\nv0.4.0\nv0.4.1\nv1.0.0\nv1.1.0\nv1.2.0\nv1.2.1\nv1.3.0\nv1.3.1\nv1.3.2",
+  "github.com/test/test/@latest": "v1.0.0",
+  "github.com/test/test/@v/v1.0.0.mod": "./test/inputs/go.mod"
+}

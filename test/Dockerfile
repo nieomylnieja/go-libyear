@@ -1,0 +1,16 @@
+FROM golang:1.21-alpine3.18 AS builder
+
+WORKDIR /src
+
+COPY ./test/test_server.go ./
+RUN go mod init test_server
+
+RUN go build -o /artifacts/test_server .
+
+FROM bats/bats
+
+RUN apk --no-cache --update add gettext
+
+COPY ./test ./test
+COPY --from=go-libyear-test-bin ./go-libyear /bin/go-libyear
+COPY --from=builder /artifacts/test_server /bin/test_server

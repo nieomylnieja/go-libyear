@@ -1,0 +1,40 @@
+go-libyear [flags] <path>
+
+Calculate Go module's libyear!
+
+There are multiple ways to parse selected go.mod file.
+Reading go.mod from the following sources is supported:
+  - file [default]: file path to a go.mod file
+    example: ./go.mod, /home/user/project/go.mod
+  - url: URL from which to fetch the file; the request is a simple GET
+    example: https://raw.githubusercontent.com/nieomylnieja/go-libyear/main/go.mod
+  - pkg: Go pkg name; if no version is provided, @latest will be appended to the name
+    example: github.com/nieomylnieja/go-libyear, github.com/nieomylnieja/go-libyear@v1.2.3
+In addition to these options the program will also detect stdin:
+  cat /home/me/project/go.mod | go-libyear
+
+The following details are computed:
+  - Package name
+  - Current version
+  - Date of the current version release
+  - Latest version
+  - Date of the latest version release
+  - Calculated libyear
+  - Releases count between current and latest (optional)
+  - Version number delta (optional)
+The following output formats are supported:
+  - table [default]
+  - CSV
+  - JSON
+The main module entry contains the sum of all dependencies' libyears.
+
+Under the hood, wherever possible GOPROXY API is queried to fetch modules' information.
+The program respects GOPROXY environment variable.
+This behavior can be changed to use `go list` instead with --go-list flag.
+
+The program ships with a builtin file-based cache. It is disabled by default, but can
+be enabled with --cache flag. It will attempt to cache the modules information in
+($XDG_CACHE_HOME|$HOME/.cache)/go-libyear directory.
+Custom cache file location can be specified with --cache-file-path flag.
+
+More details on libyear: https://libyear.com/
