@@ -1,0 +1,24 @@
+name: Scan vulnerabilities
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Run at 8:00 AM every weekday.
+    - cron:  '0 8 * * 1-5'
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Setup Golang
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Run Golang Vulncheck
+        run: make check/vulns
