@@ -1,0 +1,91 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  skip-dirs:
+    - scripts
+    - test
+  skip-dirs-use-default: true
+
+issues:
+  # Enable all checks (which was as default disabled e.g. comments).
+  exclude-use-default: false
+  # Value 0 means show all.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters-settings:
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true
+  goimports:
+    # Put imports beginning with prefix after 3rd-party packages;
+    # it's a comma-separated list of prefixes.
+    local-prefixes: github.com/nieomylnieja/go-libyear
+  govet:
+    # False positives and reporting on error shadowing (which is intended).
+    # Quoting Robi Pike:
+    #   The shadow code is marked experimental.
+    #   It has too many false positives to be enabled by default, so this is not entirely unexpected,
+    #   but don't expect a fix soon. The right way to detect shadowing without flow analysis is elusive.
+    # Few years later (comment from 2015) and the Shadow analyer is still experimental...
+    check-shadowing: false
+  lll:
+    line-length: 120
+  gocritic:
+    enabled-tags:
+      - opinionated
+  exhaustive:
+    default-signifies-exhaustive: true
+  errcheck:
+    exclude-functions:
+      - Body.Close()
+  misspell:
+    locale: US
+
+linters:
+  disable-all: true
+  enable:
+    # All linters from list https://golangci-lint.run/usage/linters/ are speciefed here and explicit enable/disable.
+    - asasalint
+    - asciicheck
+    - bodyclose
+    - errcheck
+    - exhaustive
+    - exportloopref
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocritic
+    - godot
+    - gofmt
+    - goheader
+    - goimports
+    - goprintffuncname
+    - gosimple
+    - govet
+    - importas
+    - ireturn
+    - ineffassign
+    - lll
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - prealloc
+    - predeclared
+    - revive
+    - rowserrcheck
+    - sloglint
+    - staticcheck
+    - tenv
+    - testifylint
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
+    - whitespace

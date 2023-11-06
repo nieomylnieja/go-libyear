@@ -1,0 +1,24 @@
+project_name: go-libyear
+
+release:
+  github:
+    owner: nieomylnieja
+    name: go-libyear
+
+builds:
+  - main: ./cmd/
+    binary: go-libyear
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags: -X main.Version={{.Version}} -X main.GitTag={{.Tag}} -X main.BuildDate={{.Date}}
+    env:
+      - CGO_ENABLED=0
+
+checksum:
+  name_template: {{ .ProjectName }}-{{ .Version }}-SHA256SUMS'
+  algorithm: sha256
