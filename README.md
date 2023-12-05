@@ -56,11 +56,11 @@ Libyear is the default metric calculated by the program.
 
 Example:
 
-| Current | Current release | Latest  | Latest release | Libyear |
-|---------|-----------------|---------|----------------|--|
-| v1.45.1 | 2022-10-11      | v2.0.5  | 2022-10-16     |  |
-| v1.45.1 |                 | v1.47.5 |                | (0,2,0) |
-| v1.45.1 |                 | v1.47.5 |                | (0,2,0) |
+| Current | Current release | Latest | Latest release | Libyear |
+|---------|-----------------|--------|----------------|---------|
+| v1.45.1 | 2022-10-11      | v2.0.5 | 2023-10-11     | 1       |
+| v1.46.0 | 2022-12-04      | v2.0.5 | 2023-10-11     | 0.85    |
+| v2.0.0  | 2023-10-01      | v2.0.5 | 2022-10-11     | 0.03    |
 
 ### Number of releases
 
@@ -70,10 +70,17 @@ dependencies.
 
 Example:
 
-| Current | Latest  | Delta   |
-|---------|---------|---------|
-| v1.45.1 | v2.0.5  | (1,0,0) |
-| v1.45.1 | v1.47.5 | (0,2,0) |
+| Versions |
+|----------|
+| v1.45.1  |
+| v1.45.2  |
+| v1.46.0  |
+| v2.0.0   |
+| v2.0.1   |
+
+| Current | Latest | Delta |
+|---------|--------|-------|
+| v1.45.1 | v2.0.5 | 5     |
 
 ### Version number delta
 
@@ -105,11 +112,13 @@ Example:
 ### Module sources
 
 <!-- markdownlint-disable MD013 -->
+
 | Source      | Flag      | Example                                                               |
 |-------------|-----------|-----------------------------------------------------------------------|
 | File path   | _default_ | ~/my-project/go.mod                                                   |
 | URL         | `--url`   | https://raw.githubusercontent.com/nieomylnieja/go-libyear/main/go.mod |
 | Module path | `--pkg`   | github.com/nieomylnieja/go-libyear@latest                             |
+
 <!-- markdownlint-enable MD013 -->
 
 ### Output formats
