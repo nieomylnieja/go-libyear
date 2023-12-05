@@ -6,6 +6,9 @@
     "group:recommended", // https://docs.renovatebot.com/presets-group/#grouprecommended
     "workarounds:all", // https://docs.renovatebot.com/presets-workarounds/#workaroundsall
   ],
+  "ignorePaths": [
+    "test/inputs/**",
+  ],
   "reviewersFromCodeOwners": true,
   "dependencyDashboard": true,
   "semanticCommits": "disabled",
