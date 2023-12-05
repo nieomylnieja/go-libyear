@@ -64,7 +64,7 @@ Example:
 
 ### Number of releases
 
-Dependencies with short release cycles are penalized by this measurement, |
+Dependencies with short release cycles are penalized by this measurement,
 as the version sequence distance is relatively high compared to other
 dependencies.
 
