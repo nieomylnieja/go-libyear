@@ -6,7 +6,7 @@ release:
     name: go-libyear
 
 builds:
-  - main: ./cmd/
+  - main: ./cmd/go-libyear
     binary: go-libyear
     goos:
       - darwin
