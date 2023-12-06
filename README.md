@@ -10,7 +10,7 @@ or install
 with Go:
 
 ```shell
-go install github.com/nieomylnieja/go-libyear@latest
+go install github.com/nieomylnieja/go-libyear/cmd/go-libyear@latest
 ```
 
 It can also be built directly from this repository:

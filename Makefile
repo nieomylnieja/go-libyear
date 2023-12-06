@@ -3,7 +3,7 @@ MAKEFLAGS += --silent --no-print-directory
 
 APP_NAME := go-libyear
 BIN_DIR := ./bin
-MAIN_DIR := ./cmd
+MAIN_DIR := ./cmd/$(APP_NAME)
 TEST_DIR := ./test
 
 ifdef TERM
