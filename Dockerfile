@@ -4,15 +4,15 @@ WORKDIR /app
 
 COPY ./go.mod ./go.sum ./
 COPY ./*.go ./
-COPY ./cmd/ ./cmd
-COPY ./internal/ ./internal
+COPY ./cmd/go-libyear ./cmd/go-libyear
+COPY ./internal ./internal
 
 ARG LDFLAGS
 
 RUN CGO_ENABLED=0 go build \
   -ldflags "${LDFLAGS}" \
   -o /artifacts/go-libyear \
-  "${PWD}/cmd"
+  "${PWD}/cmd/go-libyear"
 
 FROM scratch
 
