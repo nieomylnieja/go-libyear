@@ -64,7 +64,7 @@ func (c *GoProxyClient) GetLatestInfo(path string) (*Module, error) {
 
 func (c *GoProxyClient) getInfo(path string, version *semver.Version, latest bool) (*Module, error) {
 	// Try loading from cache.
-	if c.cache != nil {
+	if version != nil && c.cache != nil {
 		m, loaded := c.cache.Load(path, version)
 		if loaded {
 			return m, nil

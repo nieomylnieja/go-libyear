@@ -69,22 +69,27 @@ func TestCommand_calculateLibyear(t *testing.T) {
 func TestCommand_calculateReleases(t *testing.T) {
 	tests := []struct {
 		CurrentVersion string
+		LatestVersion  string
 		Versions       []string
 		Expected       int
 	}{
 		{
 			CurrentVersion: "v0.9.0",
+			LatestVersion:  "v1.0.0",
 			Versions: []string{
 				"v0.9.0",
 				"v0.9.1",
 				"v0.9.2",
 				"v0.10.0",
 				"v1.0.0",
+				"v2.0.0-incompatible1",
+				"v2.0.0-incompatible2",
 			},
 			Expected: 4,
 		},
 		{
 			CurrentVersion: "v0.10.0",
+			LatestVersion:  "v1.0.0",
 			Versions: []string{
 				"v0.9.1",
 				"v0.9.2",
@@ -95,6 +100,7 @@ func TestCommand_calculateReleases(t *testing.T) {
 		},
 		{
 			CurrentVersion: "v1.0.0",
+			LatestVersion:  "v1.0.0",
 			Versions: []string{
 				"v0.9.2",
 				"v0.10.0",
@@ -104,6 +110,7 @@ func TestCommand_calculateReleases(t *testing.T) {
 		},
 		{
 			CurrentVersion: "v1.0.0",
+			LatestVersion:  "v1.0.0",
 			Versions: []string{
 				"v1.0.0",
 			},
@@ -118,6 +125,7 @@ func TestCommand_calculateReleases(t *testing.T) {
 			}
 			actual := calculateReleases(
 				&internal.Module{Version: semver.MustParse(test.CurrentVersion)},
+				&internal.Module{Version: semver.MustParse(test.LatestVersion)},
 				versions)
 			assert.Equal(t, test.Expected, actual)
 		})
@@ -193,10 +201,11 @@ func TestCommand_Fallback(t *testing.T) {
 				semver.MustParse("v1.0.0"),
 				semver.MustParse("v2.0.0"),
 			},
-			getInfoResponse: &internal.Module{},
+			getInfoResponse:   &internal.Module{},
+			getLatestResponse: &internal.Module{Version: semver.MustParse("v2.0.0")},
 		}
 		versionsGetter := &mockVersionsGetter{}
-		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter}
+		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter, opts: OptionShowReleases}
 
 		err := cmd.runForModule(&internal.Module{Version: semver.MustParse("v1.0.0")})
 
@@ -208,9 +217,10 @@ func TestCommand_Fallback(t *testing.T) {
 		modulesRepo := &mockModulesRepo{
 			getVersionsResponse: []*semver.Version{},
 			getInfoResponse:     &internal.Module{},
+			getLatestResponse:   &internal.Module{Version: semver.MustParse("v2.0.0")},
 		}
 		versionsGetter := &mockVersionsGetter{}
-		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter}
+		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter, opts: OptionShowReleases}
 
 		// Don't call fallback if a version does not contain a prerelease.
 		// We only expect GOPROXY to lack versions list when no semver version was released by a module.
@@ -232,6 +242,7 @@ type mockModulesRepo struct {
 	getVersionsCalledTimes int
 	getVersionsResponse    []*semver.Version
 	getInfoResponse        *internal.Module
+	getLatestResponse      *internal.Module
 }
 
 func (m *mockModulesRepo) GetVersions(string) ([]*semver.Version, error) {
@@ -248,7 +259,7 @@ func (m *mockModulesRepo) GetInfo(string, *semver.Version) (*internal.Module, er
 }
 
 func (m *mockModulesRepo) GetLatestInfo(string) (*internal.Module, error) {
-	panic("implement me")
+	return m.getLatestResponse, nil
 }
 
 type mockVersionsGetter struct {

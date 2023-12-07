@@ -218,12 +218,17 @@
     "Version": "v1.3.2",
     "Time": "2023-06-08T06:14:45Z"
   },
+  "github.com/!burnt!sushi/toml": {
+    "Path": "github.com/BurntSushi/toml",
+    "Version": "v2.0.0-experimental",
+    "Time": "2021-08-05T05:14:45Z"
+  },
   "github.com/!burnt!sushi/toml/@latest": {
     "Path": "github.com/BurntSushi/toml",
     "Version": "v1.3.2",
     "Time": "2023-06-08T06:14:45Z"
   },
-  "github.com/!burnt!sushi/toml/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.3.1\nv0.4.0\nv0.4.1\nv1.0.0\nv1.1.0\nv1.2.0\nv1.2.1\nv1.3.0\nv1.3.1\nv1.3.2",
+  "github.com/!burnt!sushi/toml/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.3.1\nv0.4.0\nv0.4.1\nv1.0.0\nv1.1.0\nv1.2.0\nv1.2.1\nv1.3.0\nv1.3.1\nv1.3.2\nv2.0.0-experimental",
   "github.com/test/test/@latest": "v1.0.0",
   "github.com/test/test/@v/v1.0.0.mod": "./test/inputs/go.mod"
 }

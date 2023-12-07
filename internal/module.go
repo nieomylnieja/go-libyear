@@ -19,10 +19,10 @@ type Module struct {
 	Version *semver.Version `json:"Version"`
 	Time    time.Time       `json:"Time"`
 
-	IsIndirect bool    `json:"-"`
-	IsFresh    bool    `json:"-"`
-	Latest     *Module `json:"-"`
-	Libyear    float64 `json:"-"`
+	Indirect bool    `json:"-"`
+	Skipped  bool    `json:"-"`
+	Latest   *Module `json:"-"`
+	Libyear  float64 `json:"-"`
 	// ReleasesDiff is the number of release versions between latest and current.
 	ReleasesDiff int `json:"-"`
 	// VersionsDiff is an array of 3 elements: major, minor and patch versions.
@@ -64,9 +64,9 @@ func ReadGoMod(content []byte) (mainModule *Module, modules []*Module, err error
 			return nil, nil, err
 		}
 		modules = append(modules, &Module{
-			Path:       require.Mod.Path,
-			Version:    version,
-			IsIndirect: require.Indirect,
+			Path:     require.Mod.Path,
+			Version:  version,
+			Indirect: require.Indirect,
 		})
 	}
 	if modFile.Module == nil {
