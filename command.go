@@ -109,7 +109,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	}
 	if len(versions) == 0 {
 		if module.Version.Prerelease() == "" {
-			log.Printf("WARN: module %s does not have any versions", module.Path)
+			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
 		}
 		// Try fetching the versions from deps.dev.
@@ -121,7 +121,7 @@ func (c Command) runForModule(module *internal.Module) error {
 		}
 		// Check again.
 		if len(versions) == 0 {
-			log.Printf("WARN: module %s does not have any versions", module.Path)
+			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
 		}
 	}
