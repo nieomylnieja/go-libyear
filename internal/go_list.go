@@ -49,22 +49,23 @@ func (e *GoListExecutor) GetLatestInfo(path string) (*Module, error) {
 	return e.getInfo(path, nil, true)
 }
 
+// Fetch module details.
 func (e *GoListExecutor) getInfo(path string, version *semver.Version, latest bool) (*Module, error) {
 	var versionStr string
 	if latest {
 		versionStr = "latest"
 	} else {
-		versionStr = version.String()
+		versionStr = "v" + version.String()
 	}
 	// Try loading from cache.
-	if e.cache != nil {
+	if version != nil && e.cache != nil {
 		m, loaded := e.cache.Load(path, version)
 		if loaded {
 			return m, nil
 		}
 	}
 	// Fetch module details.
-	out, err := e.exec(path + "@v" + versionStr)
+	out, err := e.exec(path + "@" + versionStr)
 	if err != nil {
 		return nil, err
 	}

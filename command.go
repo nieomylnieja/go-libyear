@@ -2,6 +2,7 @@ package libyear
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"slices"
@@ -57,7 +58,7 @@ func (c Command) Run(ctx context.Context) error {
 	mainModule.Time = time.Now()
 	if !c.optionIsSet(OptionIncludeIndirect) {
 		// Filter out indirect.
-		modules = slices.DeleteFunc(modules, func(module *internal.Module) bool { return module.IsIndirect })
+		modules = slices.DeleteFunc(modules, func(module *internal.Module) bool { return module.Indirect })
 	}
 
 	group, _ := c.newErrGroup(ctx)
@@ -70,7 +71,7 @@ func (c Command) Run(ctx context.Context) error {
 	}
 	// Remove skipped modules.
 	if c.optionIsSet(OptionSkipFresh) {
-		modules = slices.DeleteFunc(modules, func(module *internal.Module) bool { return module.IsFresh })
+		modules = slices.DeleteFunc(modules, func(module *internal.Module) bool { return module.Skipped })
 	}
 
 	// Aggregate results for main module.
@@ -93,7 +94,21 @@ const secondsInYear = float64(365 * 24 * 60 * 60)
 
 func (c Command) runForModule(module *internal.Module) error {
 	// We skip this module, unless we get to the end and manage to calculate libyear.
-	module.IsFresh = true
+	module.Skipped = true
+
+	// Fetch latest.
+	latest, err := c.repo.GetLatestInfo(module.Path)
+	if err != nil {
+		return err
+	}
+	// It returns -1 (smaller), 0 (larger), or 1 (greater) when compared.
+	if module.Version.Compare(latest.Version) != -1 {
+		module.Latest = module
+		module.Time = latest.Time
+		return nil
+	}
+	module.Latest = latest
+
 	// Since we're parsing the go.mod file directly, we might need to fetch the Module.Time.
 	if module.Time.IsZero() {
 		fetchedModule, err := c.repo.GetInfo(module.Path, module.Version)
@@ -102,55 +117,50 @@ func (c Command) runForModule(module *internal.Module) error {
 		}
 		module.Time = fetchedModule.Time
 	}
-	// Fetch all versions.
+
+	// The following calculations are based on https://ericbouwers.github.io/papers/icse15.pdf.
+	module.Libyear = calculateLibyear(module, latest)
+	if c.optionIsSet(OptionShowReleases) {
+		versions, err := c.getVersions(module)
+		if err == errNoVersions {
+			log.Printf("WARN: module '%s' does not have any versions", module.Path)
+			return nil
+		}
+		module.ReleasesDiff = calculateReleases(module, latest, versions)
+	}
+	if c.optionIsSet(OptionShowVersions) {
+		module.VersionsDiff = calculateVersions(module, latest)
+	}
+
+	module.Skipped = false
+	return nil
+}
+
+var errNoVersions = errors.New("no versions found")
+
+func (c Command) getVersions(module *internal.Module) ([]*semver.Version, error) {
 	versions, err := c.repo.GetVersions(module.Path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(versions) == 0 {
 		if module.Version.Prerelease() == "" {
-			log.Printf("WARN: module '%s' does not have any versions", module.Path)
-			return nil
+			return nil, errNoVersions
 		}
 		// Try fetching the versions from deps.dev.
 		// Go list does not list prerelease versions, which is fine,
 		// unless we're dealing with a prerelease version ourselves.
 		versions, err = c.fallbackVersions.GetVersions(module.Path)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// Check again.
 		if len(versions) == 0 {
-			log.Printf("WARN: module '%s' does not have any versions", module.Path)
-			return nil
+			return nil, errNoVersions
 		}
 	}
 	sort.Sort(semver.Collection(versions))
-
-	latestVersion := versions[len(versions)-1]
-	// It returns -1 (smaller), 0 (larger), or 1 (greater) when compared.
-	if module.Version.Compare(latestVersion) != -1 {
-		module.Latest = module
-		return nil
-	}
-	// Fetch latest.
-	latest, err := c.repo.GetInfo(module.Path, latestVersion)
-	if err != nil {
-		return err
-	}
-	module.Latest = latest
-
-	// The following calculations are based on https://ericbouwers.github.io/papers/icse15.pdf.
-	module.Libyear = calculateLibyear(module, latest)
-	if c.optionIsSet(OptionShowReleases) {
-		module.ReleasesDiff = calculateReleases(module, versions)
-	}
-	if c.optionIsSet(OptionShowVersions) {
-		module.VersionsDiff = calculateVersions(module, latest)
-	}
-
-	module.IsFresh = false
-	return nil
+	return versions, nil
 }
 
 func calculateLibyear(module, latest *internal.Module) float64 {
@@ -158,9 +168,9 @@ func calculateLibyear(module, latest *internal.Module) float64 {
 	return diff.Seconds() / secondsInYear
 }
 
-func calculateReleases(module *internal.Module, versions []*semver.Version) int {
+func calculateReleases(module, latest *internal.Module, versions []*semver.Version) int {
 	currentIndex := slices.IndexFunc(versions, func(v *semver.Version) bool { return module.Version.Equal(v) })
-	latestIndex := len(versions) - 1
+	latestIndex := slices.IndexFunc(versions, func(v *semver.Version) bool { return latest.Version.Equal(v) })
 	// Example:
 	// v:  v1 | v2 | v3 | v4
 	// i:  0    1    2    3   > len == 4
