@@ -65,7 +65,7 @@ docker/build:
 .PHONY: build
 ## Build the binary.
 build:
-	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(BIN_DIR)/$(APP_NAME) $(MAIN_DIR)
+	CGO_ENABLED=0 go build -ldflags=$(LDFLAGS) -o $(BIN_DIR)/$(APP_NAME) $(MAIN_DIR)
 
 .PHONY: release
 ## Build and release the binaries.

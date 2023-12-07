@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/Masterminds/semver"
 	"github.com/stretchr/testify/assert"
 
@@ -182,4 +184,78 @@ func TestCommand_calculateVersions(t *testing.T) {
 			assert.Equal(t, test.Expected, actual)
 		})
 	}
+}
+
+func TestCommand_Fallback(t *testing.T) {
+	t.Run("don't call fallback if repo returns versions", func(t *testing.T) {
+		modulesRepo := &mockModulesRepo{
+			getVersionsResponse: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v2.0.0"),
+			},
+			getInfoResponse: &internal.Module{},
+		}
+		versionsGetter := &mockVersionsGetter{}
+		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter}
+
+		err := cmd.runForModule(&internal.Module{Version: semver.MustParse("v1.0.0")})
+
+		require.NoError(t, err)
+		assert.Equal(t, 1, modulesRepo.getVersionsCalledTimes)
+		assert.Equal(t, 0, versionsGetter.calledTimes)
+	})
+	t.Run("call fallback if repo doesn't return versions", func(t *testing.T) {
+		modulesRepo := &mockModulesRepo{
+			getVersionsResponse: []*semver.Version{},
+			getInfoResponse:     &internal.Module{},
+		}
+		versionsGetter := &mockVersionsGetter{}
+		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter}
+
+		// Don't call fallback if a version does not contain a prerelease.
+		// We only expect GOPROXY to lack versions list when no semver version was released by a module.
+		err := cmd.runForModule(&internal.Module{Version: semver.MustParse("v1.0.0")})
+
+		require.NoError(t, err)
+		assert.Equal(t, 1, modulesRepo.getVersionsCalledTimes)
+		assert.Equal(t, 0, versionsGetter.calledTimes)
+
+		err = cmd.runForModule(&internal.Module{Version: semver.MustParse("v0.0.0-20201216005158-039620a65673")})
+
+		require.NoError(t, err)
+		assert.Equal(t, 2, modulesRepo.getVersionsCalledTimes)
+		assert.Equal(t, 1, versionsGetter.calledTimes)
+	})
+}
+
+type mockModulesRepo struct {
+	getVersionsCalledTimes int
+	getVersionsResponse    []*semver.Version
+	getInfoResponse        *internal.Module
+}
+
+func (m *mockModulesRepo) GetVersions(string) ([]*semver.Version, error) {
+	m.getVersionsCalledTimes++
+	return m.getVersionsResponse, nil
+}
+
+func (m *mockModulesRepo) GetModFile(string, *semver.Version) ([]byte, error) {
+	panic("implement me")
+}
+
+func (m *mockModulesRepo) GetInfo(string, *semver.Version) (*internal.Module, error) {
+	return m.getInfoResponse, nil
+}
+
+func (m *mockModulesRepo) GetLatestInfo(string) (*internal.Module, error) {
+	panic("implement me")
+}
+
+type mockVersionsGetter struct {
+	calledTimes int
+}
+
+func (m *mockVersionsGetter) GetVersions(string) ([]*semver.Version, error) {
+	m.calledTimes++
+	return nil, nil
 }

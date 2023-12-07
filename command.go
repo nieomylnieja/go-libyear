@@ -109,19 +109,19 @@ func (c Command) runForModule(module *internal.Module) error {
 	}
 	if len(versions) == 0 {
 		if module.Version.Prerelease() == "" {
-			log.Printf("WARN: module %s does not have any versions", module.Path)
+			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
 		}
 		// Try fetching the versions from deps.dev.
 		// Go list does not list prerelease versions, which is fine,
-		// unless we're dealing with with a prerelease version ourselves.
+		// unless we're dealing with a prerelease version ourselves.
 		versions, err = c.fallbackVersions.GetVersions(module.Path)
 		if err != nil {
 			return err
 		}
 		// Check again.
 		if len(versions) == 0 {
-			log.Printf("WARN: module %s does not have any versions", module.Path)
+			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
 		}
 	}
