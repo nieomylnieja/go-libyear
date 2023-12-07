@@ -114,7 +114,7 @@ func (c Command) runForModule(module *internal.Module) error {
 		}
 		// Try fetching the versions from deps.dev.
 		// Go list does not list prerelease versions, which is fine,
-		// unless we're dealing with with a prerelease version ourselves.
+		// unless we're dealing with a prerelease version ourselves.
 		versions, err = c.fallbackVersions.GetVersions(module.Path)
 		if err != nil {
 			return err

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/Masterminds/semver"
@@ -22,6 +23,11 @@ type DepsDevClient struct {
 	http   *http.Client
 	apiURL url.URL
 }
+
+// goSemverRegex allows us to filter out non-canonical semver versions.
+// While versions like 'v1' are valid from semver perspective, GOPROXY won't recognize them.
+// Ref: https://github.com/nieomylnieja/go-libyear/issues/14.
+var goSemverRegex = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)`)
 
 func (c DepsDevClient) GetVersions(path string) ([]*semver.Version, error) {
 	path = url.PathEscape(path)
@@ -51,7 +57,11 @@ func (c DepsDevClient) GetVersions(path string) ([]*semver.Version, error) {
 		if v.VersionKey.Version == nil {
 			continue
 		}
-		versions = append(versions, v.VersionKey.Version)
+		version := v.VersionKey.Version
+		if !goSemverRegex.MatchString(version.Original()) {
+			continue
+		}
+		versions = append(versions, version)
 	}
 	return versions, nil
 }
