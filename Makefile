@@ -77,7 +77,7 @@ release:
 test: test/unit test/cli
 
 ## Run cli bats tests.
-test/cli: test/cli/init
+test/cli:
 	$(call _print_step,Running cli tests)
 	$(eval VERSION := modified_value)
 	docker build \
@@ -85,10 +85,6 @@ test/cli: test/cli/init
 		-t go-libyear-test-bin .
 	docker build -t go-libyear-bats -f $(TEST_DIR)/Dockerfile .
 	docker run --rm go-libyear-bats $(TEST_DIR)/*
-
-## Initialize bats tests framework.
-test/cli/init:
-	git submodule update --init --recursive $(TEST_DIR)
 
 ## Run all unit tests.
 test/unit:
