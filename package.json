@@ -3,7 +3,7 @@
   "type": "module",
   "devDependencies": {
     "cspell": "8.3.2",
-    "markdownlint-cli": "0.38.0",
+    "markdownlint-cli": "0.39.0",
     "yaml": "2.3.4"
   },
   "scripts": {
