@@ -33,9 +33,9 @@ GOSEC_VERSION := v2.18.2
 # renovate datasource=github-releases depName=golangci/golangci-lint
 GOLANGCI_LINT_VERSION := v1.55.2
 # renovate datasource=go depName=golang.org/x/vuln/cmd/govulncheck
-GOVULNCHECK_VERSION := v1.0.1
+GOVULNCHECK_VERSION := v1.0.3
 # renovate datasource=go depName=golang.org/x/tools/cmd/goimports
-GOIMPORTS_VERSION := v0.16.0
+GOIMPORTS_VERSION := v0.17.0
 
 # Check if the program is present in $PATH and install otherwise.
 # ${1} - oneOf{binary,yarn}
@@ -77,7 +77,7 @@ release:
 test: test/unit test/cli
 
 ## Run cli bats tests.
-test/cli: test/cli/init
+test/cli:
 	$(call _print_step,Running cli tests)
 	$(eval VERSION := modified_value)
 	docker build \
@@ -85,10 +85,6 @@ test/cli: test/cli/init
 		-t go-libyear-test-bin .
 	docker build -t go-libyear-bats -f $(TEST_DIR)/Dockerfile .
 	docker run --rm go-libyear-bats $(TEST_DIR)/*
-
-## Initialize bats tests framework.
-test/cli/init:
-	git submodule update --init --recursive $(TEST_DIR)
 
 ## Run all unit tests.
 test/unit:
