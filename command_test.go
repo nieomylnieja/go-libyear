@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/Masterminds/semver"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/nieomylnieja/go-libyear/internal"
+	"github.com/nieomylnieja/go-libyear/internal/mocks"
 )
 
 func TestCommand_calculateLibyear(t *testing.T) {
@@ -50,6 +52,13 @@ func TestCommand_calculateLibyear(t *testing.T) {
 			CurrentDate: "2021-05-12",
 			LatestDate:  "2021-05-14",
 			Expected:    0.01,
+		},
+		// Security fix for older version could cause a potential negative libyear.
+		// We round it to 0 instead.
+		{
+			CurrentDate: "2021-05-15",
+			LatestDate:  "2021-05-14",
+			Expected:    0.0,
 		},
 	}
 	for i, test := range tests {
@@ -196,77 +205,139 @@ func TestCommand_calculateVersions(t *testing.T) {
 
 func TestCommand_Fallback(t *testing.T) {
 	t.Run("don't call fallback if repo returns versions", func(t *testing.T) {
-		modulesRepo := &mockModulesRepo{
-			getVersionsResponse: []*semver.Version{
+		ctrl := gomock.NewController(t)
+
+		modulesRepo := mocks.NewMockModulesRepo(ctrl)
+		modulesRepo.EXPECT().
+			GetVersions(gomock.Any()).
+			Times(2).
+			Return([]*semver.Version{
 				semver.MustParse("v1.0.0"),
 				semver.MustParse("v2.0.0"),
-			},
-			getInfoResponse:   &internal.Module{},
-			getLatestResponse: &internal.Module{Version: semver.MustParse("v2.0.0")},
-		}
-		versionsGetter := &mockVersionsGetter{}
+			}, nil)
+		modulesRepo.EXPECT().
+			GetInfo(gomock.Any(), gomock.Any()).
+			Return(&internal.Module{}, nil)
+		modulesRepo.EXPECT().
+			GetLatestInfo(gomock.Any()).
+			Return(&internal.Module{Version: semver.MustParse("v2.0.0")}, nil)
+
+		versionsGetter := mocks.NewMockVersionsGetter(ctrl)
+		versionsGetter.EXPECT().GetVersions(gomock.Any()).Times(0)
+
 		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter, opts: OptionShowReleases}
 
 		err := cmd.runForModule(&internal.Module{Version: semver.MustParse("v1.0.0")})
-
 		require.NoError(t, err)
-		assert.Equal(t, 1, modulesRepo.getVersionsCalledTimes)
-		assert.Equal(t, 0, versionsGetter.calledTimes)
 	})
 	t.Run("call fallback if repo doesn't return versions", func(t *testing.T) {
-		modulesRepo := &mockModulesRepo{
-			getVersionsResponse: []*semver.Version{},
-			getInfoResponse:     &internal.Module{},
-			getLatestResponse:   &internal.Module{Version: semver.MustParse("v2.0.0")},
-		}
-		versionsGetter := &mockVersionsGetter{}
+		ctrl := gomock.NewController(t)
+
+		modulesRepo := mocks.NewMockModulesRepo(ctrl)
+		modulesRepo.EXPECT().
+			GetVersions(gomock.Any()).
+			Times(1).
+			Return([]*semver.Version{}, nil)
+		modulesRepo.EXPECT().
+			GetInfo(gomock.Any(), gomock.Any()).
+			Times(2).
+			Return(&internal.Module{}, nil)
+		modulesRepo.EXPECT().
+			GetLatestInfo(gomock.Any()).
+			Times(2).
+			Return(&internal.Module{Version: semver.MustParse("v2.0.0")}, nil)
+
+		versionsGetter := mocks.NewMockVersionsGetter(ctrl)
+		versionsGetter.EXPECT().GetVersions(gomock.Any()).Times(0)
+
 		cmd := Command{repo: modulesRepo, fallbackVersions: versionsGetter, opts: OptionShowReleases}
 
 		// Don't call fallback if a version does not contain a prerelease.
 		// We only expect GOPROXY to lack versions list when no semver version was released by a module.
 		err := cmd.runForModule(&internal.Module{Version: semver.MustParse("v1.0.0")})
-
 		require.NoError(t, err)
-		assert.Equal(t, 1, modulesRepo.getVersionsCalledTimes)
-		assert.Equal(t, 0, versionsGetter.calledTimes)
+
+		modulesRepo.EXPECT().
+			GetVersions(gomock.Any()).
+			Times(1).
+			Return([]*semver.Version{}, nil)
+		versionsGetter.EXPECT().GetVersions(gomock.Any()).Times(1)
 
 		err = cmd.runForModule(&internal.Module{Version: semver.MustParse("v0.0.0-20201216005158-039620a65673")})
-
 		require.NoError(t, err)
-		assert.Equal(t, 2, modulesRepo.getVersionsCalledTimes)
-		assert.Equal(t, 1, versionsGetter.calledTimes)
 	})
 }
 
-type mockModulesRepo struct {
-	getVersionsCalledTimes int
-	getVersionsResponse    []*semver.Version
-	getInfoResponse        *internal.Module
-	getLatestResponse      *internal.Module
-}
+func TestCommand_GetLatestInfo(t *testing.T) {
+	// Call is a single ModulesRepo.GetLatestInfo call.
+	type Call struct {
+		Input        string
+		OtuputModule *internal.Module
+		OtuputError  error
+	}
+	tests := map[string]struct {
+		Calls          []Call
+		ExpectedLatest *semver.Version
+		Options        Option
+	}{
+		"don't check for next major": {
+			Calls: []Call{
+				{
+					Input:        "github.com/golang/mock",
+					OtuputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
+				},
+			},
+			ExpectedLatest: semver.MustParse("v1.0.0"),
+		},
+		"check for next major, not found": {
+			Calls: []Call{
+				{
+					Input:        "github.com/golang/mock",
+					OtuputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
+				},
+				{
+					Input:       "github.com/golang/mock/v2",
+					OtuputError: errors.New("no matching versions found"),
+				},
+			},
+			ExpectedLatest: semver.MustParse("v1.0.0"),
+			Options:        OptionFindLatestMajor,
+		},
+		"check for next major, found": {
+			Calls: []Call{
+				{
+					Input:        "github.com/golang/mock",
+					OtuputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
+				},
+				{
+					Input:        "github.com/golang/mock/v2",
+					OtuputModule: &internal.Module{Version: semver.MustParse("v2.0.0")},
+				},
+				{
+					Input:       "github.com/golang/mock/v3",
+					OtuputError: errors.New("no matching versions found"),
+				},
+			},
+			ExpectedLatest: semver.MustParse("v2.0.0"),
+			Options:        OptionFindLatestMajor,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 
-func (m *mockModulesRepo) GetVersions(string) ([]*semver.Version, error) {
-	m.getVersionsCalledTimes++
-	return m.getVersionsResponse, nil
-}
+			modulesRepo := mocks.NewMockModulesRepo(ctrl)
+			for _, call := range test.Calls {
+				modulesRepo.EXPECT().
+					GetLatestInfo(call.Input).
+					Times(1).
+					Return(call.OtuputModule, call.OtuputError)
+			}
+			cmd := Command{repo: modulesRepo, opts: test.Options}
+			latest, err := cmd.getLatestInfo("github.com/golang/mock")
 
-func (m *mockModulesRepo) GetModFile(string, *semver.Version) ([]byte, error) {
-	panic("implement me")
-}
-
-func (m *mockModulesRepo) GetInfo(string, *semver.Version) (*internal.Module, error) {
-	return m.getInfoResponse, nil
-}
-
-func (m *mockModulesRepo) GetLatestInfo(string) (*internal.Module, error) {
-	return m.getLatestResponse, nil
-}
-
-type mockVersionsGetter struct {
-	calledTimes int
-}
-
-func (m *mockVersionsGetter) GetVersions(string) ([]*semver.Version, error) {
-	m.calledTimes++
-	return nil, nil
+			require.NoError(t, err)
+			assert.Equal(t, test.ExpectedLatest, latest.Version)
+		})
+	}
 }

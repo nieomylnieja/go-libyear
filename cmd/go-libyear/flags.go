@@ -17,11 +17,12 @@ const (
 )
 
 var flagToOption = map[string]golibyear.Option{
-	flagIndirect.Name:  golibyear.OptionIncludeIndirect,
-	flagSkipFresh.Name: golibyear.OptionSkipFresh,
-	flagReleases.Name:  golibyear.OptionShowReleases,
-	flagVersions.Name:  golibyear.OptionShowVersions,
-	flagUseGoList.Name: golibyear.OptionUseGoList,
+	flagIndirect.Name:        golibyear.OptionIncludeIndirect,
+	flagSkipFresh.Name:       golibyear.OptionSkipFresh,
+	flagReleases.Name:        golibyear.OptionShowReleases,
+	flagVersions.Name:        golibyear.OptionShowVersions,
+	flagUseGoList.Name:       golibyear.OptionUseGoList,
+	flagFindLatestMajor.Name: golibyear.OptionFindLatestMajor,
 }
 
 var (
@@ -57,8 +58,8 @@ var (
 		Usage:       "Use custom cache file path",
 		DefaultText: "$XDG_CACHE_HOME/go-libyear/modules or $HOME/.cache/go-libyear/modules",
 		Category:    categoryCache,
-		Action: func(c *cli.Context, path cli.Path) error {
-			if !c.IsSet("cache") {
+		Action: func(ctx *cli.Context, _ cli.Path) error {
+			if !ctx.IsSet("cache") {
 				return errors.Errorf("--cache-file-path flag can only be used in conjunction with --cache")
 			}
 			return nil
@@ -95,11 +96,16 @@ var (
 		Usage:    "Display the number of major, minor, and patch versions between current and newest versions",
 		Category: categoryOutput,
 	}
+	flagFindLatestMajor = &cli.BoolFlag{
+		Name:    "find-latest-major",
+		Aliases: []string{"M"},
+		Usage:   "Use next, greater than or equal to v2 version as the latest",
+	}
 	flagVersion = &cli.BoolFlag{
 		Name:    "version",
 		Aliases: []string{"v"},
 		Usage:   "Show the program version",
-		Action: func(context *cli.Context, b bool) error {
+		Action: func(_ *cli.Context, _ bool) error {
 			fmt.Printf("Version: %s\nGitTag: %s\nBuildDate: %s\n",
 				BuildVersion, BuildGitTag, BuildDate)
 			return nil

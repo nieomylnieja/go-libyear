@@ -3,9 +3,11 @@ module github.com/test/test
 go 1.21
 
 require (
-	golang.org/x/sync v0.5.0
-	github.com/pkg/errors v0.8.0
 	github.com/BurntSushi/toml v0.4.1
+	github.com/lestrrat-go/jwx v1.2.25
+	github.com/pkg/errors v0.9.1
+	golang.org/x/sync v0.5.0
+  github.com/go-playground/validator v8.18.2+incompatible
 )
 
 require (

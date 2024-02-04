@@ -47,6 +47,7 @@ func main() {
 			flagReleases,
 			flagVersions,
 			flagVersion,
+			flagFindLatestMajor,
 		},
 		Suggest: true,
 	}
