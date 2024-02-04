@@ -272,8 +272,8 @@ func TestCommand_GetLatestInfo(t *testing.T) {
 	// Call is a single ModulesRepo.GetLatestInfo call.
 	type Call struct {
 		Input        string
-		OtuputModule *internal.Module
-		OtuputError  error
+		OutputModule *internal.Module
+		OutputError  error
 	}
 	tests := map[string]struct {
 		Calls          []Call
@@ -284,7 +284,7 @@ func TestCommand_GetLatestInfo(t *testing.T) {
 			Calls: []Call{
 				{
 					Input:        "github.com/golang/mock",
-					OtuputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
+					OutputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
 				},
 			},
 			ExpectedLatest: semver.MustParse("v1.0.0"),
@@ -293,11 +293,11 @@ func TestCommand_GetLatestInfo(t *testing.T) {
 			Calls: []Call{
 				{
 					Input:        "github.com/golang/mock",
-					OtuputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
+					OutputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
 				},
 				{
 					Input:       "github.com/golang/mock/v2",
-					OtuputError: errors.New("no matching versions found"),
+					OutputError: errors.New("no matching versions found"),
 				},
 			},
 			ExpectedLatest: semver.MustParse("v1.0.0"),
@@ -307,15 +307,15 @@ func TestCommand_GetLatestInfo(t *testing.T) {
 			Calls: []Call{
 				{
 					Input:        "github.com/golang/mock",
-					OtuputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
+					OutputModule: &internal.Module{Version: semver.MustParse("v1.0.0")},
 				},
 				{
 					Input:        "github.com/golang/mock/v2",
-					OtuputModule: &internal.Module{Version: semver.MustParse("v2.0.0")},
+					OutputModule: &internal.Module{Version: semver.MustParse("v2.0.0")},
 				},
 				{
 					Input:       "github.com/golang/mock/v3",
-					OtuputError: errors.New("no matching versions found"),
+					OutputError: errors.New("no matching versions found"),
 				},
 			},
 			ExpectedLatest: semver.MustParse("v2.0.0"),
@@ -331,7 +331,7 @@ func TestCommand_GetLatestInfo(t *testing.T) {
 				modulesRepo.EXPECT().
 					GetLatestInfo(call.Input).
 					Times(1).
-					Return(call.OtuputModule, call.OtuputError)
+					Return(call.OutputModule, call.OutputError)
 			}
 			cmd := Command{repo: modulesRepo, opts: test.Options}
 			latest, err := cmd.getLatestInfo("github.com/golang/mock")
