@@ -3,7 +3,6 @@ package libyear
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	pathlib "path"
@@ -99,7 +98,6 @@ func (c Command) Run(ctx context.Context) error {
 const secondsInYear = float64(365 * 24 * 60 * 60)
 
 func (c Command) runForModule(module *internal.Module) error {
-	defer func() { fmt.Println("finished: ", module.Path) }()
 	// We skip this module, unless we get to the end and manage to calculate libyear.
 	module.Skipped = true
 
@@ -128,7 +126,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	// The following calculations are based on https://ericbouwers.github.io/papers/icse15.pdf.
 	module.Libyear = calculateLibyear(module, latest)
 	if c.optionIsSet(OptionShowReleases) {
-		versions, err := c.getVersions(module, latest)
+		versions, err := c.getAllVersions(latest)
 		if err == errNoVersions {
 			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
@@ -145,42 +143,46 @@ func (c Command) runForModule(module *internal.Module) error {
 
 var errNoVersions = errors.New("no versions found")
 
-func (c Command) getVersions(module, latest *internal.Module) ([]*semver.Version, error) {
+func (c Command) getAllVersions(latest *internal.Module) ([]*semver.Version, error) {
 	allVersions := make([]*semver.Version, 0)
-	major := module.Version.Major()
-	path := module.Path
-	for {
-		versions, err := c.repo.GetVersions(path)
+	for _, path := range latest.AllPaths {
+		versions, err := c.getVersionsForPath(path, latest.Version.Prerelease() != "")
 		if err != nil {
 			return nil, err
 		}
-		if len(versions) == 0 {
-			if module.Version.Prerelease() == "" {
-				return nil, errNoVersions
-			}
-			// Try fetching the versions from deps.dev.
-			// Go list does not list prerelease versions, which is fine,
-			// unless we're dealing with a prerelease version ourselves.
-			versions, err = c.fallbackVersions.GetVersions(module.Path)
-			if err != nil {
-				return nil, err
-			}
-			// Check again.
-			if len(versions) == 0 {
-				return nil, errNoVersions
-			}
-		}
-		if major == latest.Version.Major() {
-			break
-		}
-		path = updatePathVersion(path, major, major+1)
-		major++
+		allVersions = append(allVersions, versions...)
 	}
 	sort.Sort(semver.Collection(allVersions))
 	return allVersions, nil
 }
 
+func (c Command) getVersionsForPath(path string, isPrerelease bool) ([]*semver.Version, error) {
+	versions, err := c.repo.GetVersions(path)
+	if err != nil {
+		return nil, err
+	}
+	if len(versions) > 0 {
+		return versions, nil
+	}
+	if !isPrerelease {
+		return nil, errNoVersions
+	}
+	// Try fetching the versions from deps.dev.
+	// Go list does not list prerelease versions, which is fine,
+	// unless we're dealing with a prerelease version ourselves.
+	versions, err = c.fallbackVersions.GetVersions(path)
+	if err != nil {
+		return nil, err
+	}
+	// Check again.
+	if len(versions) == 0 {
+		return nil, errNoVersions
+	}
+	return versions, nil
+}
+
 func (c Command) getLatestInfo(path string) (*internal.Module, error) {
+	var paths []string
 	var latest *internal.Module
 	for {
 		lts, err := c.repo.GetLatestInfo(path)
@@ -199,18 +201,29 @@ func (c Command) getLatestInfo(path string) (*internal.Module, error) {
 			break
 		}
 		// Increment major version.
-		major := latest.Version.Major()
-		path = updatePathVersion(path, major, major+1)
+		var newMajor int64
+		if latest.Version.Major() > 1 {
+			newMajor = latest.Version.Major() + 1
+		} else {
+			newMajor = 2
+		}
+		paths = append(paths, path)
+		path = updatePathVersion(path, latest.Version.Major(), newMajor)
 	}
+	// In case we don't have v2 or above.
+	if len(paths) == 0 {
+		paths = append(paths, latest.Path)
+	}
+	latest.AllPaths = paths
 	return latest, nil
 }
 
 func updatePathVersion(path string, currentMajor, newMajor int64) string {
-	if currentMajor == 0 {
-		return path
-	}
 	if currentMajor > 1 {
-		path = pathlib.Dir(path)
+		// Only trim the suffix from post-modules version paths.
+		if strings.HasSuffix(path, strconv.Itoa(int(currentMajor))) {
+			path = pathlib.Dir(path)
+		}
 	}
 	return pathlib.Join(path, "v"+strconv.Itoa(int(newMajor)))
 }

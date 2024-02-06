@@ -7,14 +7,14 @@ set -eo pipefail
 test_go_mod="github.com/test/test"
 
 repos=(
-	github.com/pkg/errors
-	golang.org/x/sync
-	github.com/cpuguy83/go-md2man/v2
+	# github.com/pkg/errors
+	# golang.org/x/sync
+	# github.com/cpuguy83/go-md2man/v2
 	github.com/xrash/smetrics
-	github.com/BurntSushi/toml
-	github.com/lestrrat-go/jwx
-	github.com/lestrrat-go/jwx/v2
-	github.com/go-playground/validator
+	# github.com/BurntSushi/toml
+	# github.com/lestrrat-go/jwx
+	# github.com/lestrrat-go/jwx/v2
+	# github.com/go-playground/validator
 )
 
 json=""
@@ -53,6 +53,6 @@ for repo in "${repos[@]}"; do
 done
 
 # We need .info and .mod for our test go.mod
-json="$json {\"${test_go_mod}/@latest\": \"v1.0.0\"} {\"${test_go_mod}/@v/v1.0.0.mod\": \"./test/inputs/go.mod\"}"
+json="$json {\"${test_go_mod}/@latest\": \"v1.0.0\"} {\"${test_go_mod}/@v/v1.0.0.mod\": \"./test/inputs/test-go.mod\"}"
 
 jq -s 'reduce .[] as $obj ({}; . * $obj)' <<<"$json"

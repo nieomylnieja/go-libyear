@@ -95,12 +95,17 @@
     "Version": "v0.5.0",
     "Time": "2023-10-11T14:04:17Z"
   },
+  "golang.org/x/sync/@v/v0.6.0.info": {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.6.0",
+    "Time": "2023-12-07T16:58:19Z"
+  },
   "golang.org/x/sync/@latest": {
     "Path": "golang.org/x/sync",
-    "Version": "v0.5.0",
-    "Time": "2023-10-11T14:04:17Z"
+    "Version": "v0.6.0",
+    "Time": "2023-12-07T16:58:19Z"
   },
-  "golang.org/x/sync/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.4.0\nv0.5.0",
+  "golang.org/x/sync/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.4.0\nv0.5.0\nv0.6.0",
   "github.com/cpuguy83/go-md2man/v2/@v/v2.0.0.info": {
     "Path": "github.com/cpuguy83/go-md2man/v2",
     "Version": "v2.0.0",
@@ -147,12 +152,17 @@
     "Version": "v0.0.0-20201216005158-039620a65673",
     "Time": "2020-12-16T00:51:58Z"
   },
+  "github.com/xrash/smetrics/@v/v0.0.0-20231213231151-1d8dd44e695e.info": {
+    "Path": "github.com/xrash/smetrics",
+    "Version": "v0.0.0-20231213231151-1d8dd44e695e",
+    "Time": "2023-12-13T23:11:51Z"
+  },
   "github.com/xrash/smetrics/@latest": {
     "Path": "github.com/xrash/smetrics",
-    "Version": "v0.0.0-20201216005158-039620a65673",
-    "Time": "2020-12-16T00:51:58Z"
+    "Version": "v0.0.0-20231213231151-1d8dd44e695e",
+    "Time": "2023-12-13T23:11:51Z"
   },
-  "github.com/xrash/smetrics/@v/list": "v0.0.0-20170218160415-a3153f7040e9\nv0.0.0-20200723181607-f06e43cca1ab\nv0.0.0-20200730060457-89a2a8a1fb0b\nv0.0.0-20201216005158-039620a65673",
+  "github.com/xrash/smetrics/@v/list": "v0.0.0-20170218160415-a3153f7040e9\nv0.0.0-20200723181607-f06e43cca1ab\nv0.0.0-20200730060457-89a2a8a1fb0b\nv0.0.0-20201216005158-039620a65673\nv0.0.0-20231213231151-1d8dd44e695e",
   "github.com/!burnt!sushi/toml/@v/v0.1.0.info": {
     "Path": "github.com/BurntSushi/toml",
     "Version": "v0.1.0",
@@ -479,12 +489,17 @@
     "Version": "v1.2.27",
     "Time": "2023-12-03T07:23:35Z"
   },
+  "github.com/lestrrat-go/jwx/@v/v1.2.28.info": {
+    "Path": "github.com/lestrrat-go/jwx",
+    "Version": "v1.2.28",
+    "Time": "2024-01-09T01:52:35Z"
+  },
   "github.com/lestrrat-go/jwx/@latest": {
     "Path": "github.com/lestrrat-go/jwx",
-    "Version": "v1.2.27",
-    "Time": "2023-12-03T07:23:35Z"
+    "Version": "v1.2.28",
+    "Time": "2024-01-09T01:52:35Z"
   },
-  "github.com/lestrrat-go/jwx/@v/list": "v0.9.0\nv0.9.1\nv0.9.2\nv1.0.0\nv1.0.1\nv1.0.2\nv1.0.3\nv1.0.4\nv1.0.5\nv1.0.6\nv1.0.7\nv1.0.8\nv1.1.0\nv1.1.1\nv1.1.2\nv1.1.3\nv1.1.4\nv1.1.5-rc1\nv1.1.5\nv1.1.6\nv1.1.7-rc1\nv1.1.7\nv1.1.8-rc1\nv1.2.0\nv1.2.1\nv1.2.2\nv1.2.3\nv1.2.4\nv1.2.5\nv1.2.6\nv1.2.7\nv1.2.8\nv1.2.9\nv1.2.10\nv1.2.11\nv1.2.12\nv1.2.13\nv1.2.14\nv1.2.15\nv1.2.17\nv1.2.18\nv1.2.19\nv1.2.20\nv1.2.21\nv1.2.22\nv1.2.23\nv1.2.24\nv1.2.25\nv1.2.26\nv1.2.27",
+  "github.com/lestrrat-go/jwx/@v/list": "v0.9.0\nv0.9.1\nv0.9.2\nv1.0.0\nv1.0.1\nv1.0.2\nv1.0.3\nv1.0.4\nv1.0.5\nv1.0.6\nv1.0.7\nv1.0.8\nv1.1.0\nv1.1.1\nv1.1.2\nv1.1.3\nv1.1.4\nv1.1.5-rc1\nv1.1.5\nv1.1.6\nv1.1.7-rc1\nv1.1.7\nv1.1.8-rc1\nv1.2.0\nv1.2.1\nv1.2.2\nv1.2.3\nv1.2.4\nv1.2.5\nv1.2.6\nv1.2.7\nv1.2.8\nv1.2.9\nv1.2.10\nv1.2.11\nv1.2.12\nv1.2.13\nv1.2.14\nv1.2.15\nv1.2.17\nv1.2.18\nv1.2.19\nv1.2.20\nv1.2.21\nv1.2.22\nv1.2.23\nv1.2.24\nv1.2.25\nv1.2.26\nv1.2.27\nv1.2.28",
   "github.com/lestrrat-go/jwx/v2/@v/v2.0.0-alpha1.info": {
     "Path": "github.com/lestrrat-go/jwx/v2",
     "Version": "v2.0.0-alpha1",
@@ -595,12 +610,17 @@
     "Version": "v2.0.18",
     "Time": "2023-12-03T06:57:18Z"
   },
+  "github.com/lestrrat-go/jwx/v2/@v/v2.0.19.info": {
+    "Path": "github.com/lestrrat-go/jwx/v2",
+    "Version": "v2.0.19",
+    "Time": "2024-01-09T01:44:48Z"
+  },
   "github.com/lestrrat-go/jwx/v2/@latest": {
     "Path": "github.com/lestrrat-go/jwx/v2",
-    "Version": "v2.0.18",
-    "Time": "2023-12-03T06:57:18Z"
+    "Version": "v2.0.19",
+    "Time": "2024-01-09T01:44:48Z"
   },
-  "github.com/lestrrat-go/jwx/v2/@v/list": "v2.0.0-alpha1\nv2.0.0-beta1\nv2.0.0-beta2\nv2.0.0\nv2.0.1\nv2.0.2\nv2.0.3\nv2.0.4\nv2.0.5\nv2.0.6\nv2.0.7\nv2.0.8\nv2.0.9\nv2.0.10\nv2.0.11\nv2.0.12\nv2.0.13\nv2.0.14\nv2.0.15\nv2.0.16\nv2.0.17\nv2.0.18",
+  "github.com/lestrrat-go/jwx/v2/@v/list": "v2.0.0-alpha1\nv2.0.0-beta1\nv2.0.0-beta2\nv2.0.0\nv2.0.1\nv2.0.2\nv2.0.3\nv2.0.4\nv2.0.5\nv2.0.6\nv2.0.7\nv2.0.8\nv2.0.9\nv2.0.10\nv2.0.11\nv2.0.12\nv2.0.13\nv2.0.14\nv2.0.15\nv2.0.16\nv2.0.17\nv2.0.18\nv2.0.19",
   "github.com/go-playground/validator/@v/v3.0.1+incompatible.info": {
     "Path": "github.com/go-playground/validator",
     "Version": "v3.0.1+incompatible",
@@ -1018,5 +1038,5 @@
   },
   "github.com/go-playground/validator/@v/list": "v3.0.1+incompatible\nv3.0.2+incompatible\nv4.0.1+incompatible\nv4.0.3+incompatible\nv4.0.4+incompatible\nv5.0.1+incompatible\nv5.0.2+incompatible\nv5.5.1+incompatible\nv5.6.1+incompatible\nv5.7.1+incompatible\nv5.8.1+incompatible\nv5.9.1+incompatible\nv5.9.2+incompatible\nv5.10.1+incompatible\nv5.10.2+incompatible\nv5.10.3+incompatible\nv6.0.1+incompatible\nv6.0.2+incompatible\nv6.1.1+incompatible\nv6.5.1+incompatible\nv8.0.1+incompatible\nv8.8.1+incompatible\nv8.15.1+incompatible\nv8.17.1+incompatible\nv8.17.2+incompatible\nv8.17.3+incompatible\nv8.18.0+incompatible\nv8.18.1+incompatible\nv8.18.2+incompatible\nv9.0.0+incompatible\nv9.1.0+incompatible\nv9.1.1+incompatible\nv9.1.2+incompatible\nv9.1.3+incompatible\nv9.2.0+incompatible\nv9.2.1+incompatible\nv9.2.2+incompatible\nv9.3.0+incompatible\nv9.3.1+incompatible\nv9.3.2+incompatible\nv9.3.3+incompatible\nv9.3.4+incompatible\nv9.3.5+incompatible\nv9.3.6+incompatible\nv9.4.0+incompatible\nv9.5.0+incompatible\nv9.6.0+incompatible\nv9.7.0+incompatible\nv9.8.0+incompatible\nv9.9.0+incompatible\nv9.9.1+incompatible\nv9.9.2+incompatible\nv9.9.3+incompatible\nv9.9.4+incompatible\nv9.10.0+incompatible\nv9.11.0+incompatible\nv9.12.0+incompatible\nv9.13.0+incompatible\nv9.14.0+incompatible\nv9.15.0+incompatible\nv9.16.0+incompatible\nv9.16.1+incompatible\nv9.17.0+incompatible\nv9.17.1+incompatible\nv9.19.0+incompatible\nv9.20.0+incompatible\nv9.20.1+incompatible\nv9.20.2+incompatible\nv9.21.0+incompatible\nv9.21.1+incompatible\nv9.22.0+incompatible\nv9.23.0+incompatible\nv9.24.0+incompatible\nv9.25.0+incompatible\nv9.26.0+incompatible\nv9.27.0+incompatible\nv9.28.0+incompatible\nv9.29.0+incompatible\nv9.29.1+incompatible\nv9.30.0+incompatible\nv9.30.1+incompatible\nv9.30.2+incompatible\nv9.31.0+incompatible",
   "github.com/test/test/@latest": "v1.0.0",
-  "github.com/test/test/@v/v1.0.0.mod": "./test/inputs/go.mod"
+  "github.com/test/test/@v/v1.0.0.mod": "./test/inputs/test-go.mod"
 }
