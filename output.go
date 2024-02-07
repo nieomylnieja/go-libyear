@@ -107,14 +107,14 @@ type jsonSummaryModel struct {
 }
 
 type jsonPackageModel struct {
-	Package       string                `json:"package"`
-	Version       string                `json:"version"`
-	Date          string                `json:"date"`
-	LatestVersion string                `json:"latest_version"`
-	LatestDate    string                `json:"latest_date"`
-	Libyear       float64               `json:"libyear"`
-	Releases      *int                  `json:"releases,omitempty"`
-	Versions      internal.VersionsDiff `json:"versions,omitempty"`
+	Package       string                 `json:"package"`
+	Version       string                 `json:"version"`
+	Date          string                 `json:"date"`
+	LatestVersion string                 `json:"latest_version"`
+	LatestDate    string                 `json:"latest_date"`
+	Libyear       float64                `json:"libyear"`
+	Releases      *int                   `json:"releases,omitempty"`
+	Versions      *internal.VersionsDiff `json:"versions,omitempty"`
 }
 
 func (j JSONOutput) Send(summary Summary) error {
@@ -137,7 +137,7 @@ func (j JSONOutput) Send(summary Summary) error {
 			m.Releases = ptr(module.ReleasesDiff)
 		}
 		if summary.versions {
-			m.Versions = module.VersionsDiff
+			m.Versions = &module.VersionsDiff
 		}
 		model.Packages = append(model.Packages, m)
 	}

@@ -2,29 +2,35 @@ package libyear
 
 import (
 	"context"
-	"errors"
 	"log"
 	"os"
+	pathlib "path"
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nieomylnieja/go-libyear/internal"
 
 	"github.com/Masterminds/semver"
+	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
 type Option int
 
 const (
-	OptionShowReleases    Option = 1 << iota // 1
-	OptionShowVersions                       // 2
-	OptionSkipFresh                          // 4
-	OptionIncludeIndirect                    // 8
-	OptionUseGoList
+	OptionShowReleases          Option = 1 << iota // 1
+	OptionShowVersions                             // 2
+	OptionSkipFresh                                // 4
+	OptionIncludeIndirect                          // 8
+	OptionUseGoList                                // 16
+	OptionFindLatestMajor                          // 32
+	OptionNoLibyearCompensation                    // 32
 )
+
+//go:generate mockgen -destination internal/mocks/mocks.go -package mocks -typed . ModulesRepo,VersionsGetter
 
 type ModulesRepo interface {
 	VersionsGetter
@@ -97,7 +103,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	module.Skipped = true
 
 	// Fetch latest.
-	latest, err := c.repo.GetLatestInfo(module.Path)
+	latest, err := c.getLatestInfo(module.Path)
 	if err != nil {
 		return err
 	}
@@ -118,10 +124,26 @@ func (c Command) runForModule(module *internal.Module) error {
 		module.Time = fetchedModule.Time
 	}
 
+	currentTime := module.Time
+	if c.optionIsSet(OptionFindLatestMajor) &&
+		!c.optionIsSet(OptionNoLibyearCompensation) &&
+		module.Path != latest.Path {
+		first, err := c.findFirstModule(latest.Path)
+		if err != nil {
+			return err
+		}
+		if module.Time.After(first.Time) {
+			log.Printf("INFO: current module version %s is newer than latest version %s; "+
+				"libyear will be calculated from the first version of latest major (%s) to the latest version (%s); "+
+				"if you wish to disable this behavior, use --allow-negative-libyear flag",
+				module.Version, latest.Version, first.Version, module.Version)
+			currentTime = first.Time
+		}
+	}
 	// The following calculations are based on https://ericbouwers.github.io/papers/icse15.pdf.
-	module.Libyear = calculateLibyear(module, latest)
+	module.Libyear = calculateLibyear(currentTime, latest.Time)
 	if c.optionIsSet(OptionShowReleases) {
-		versions, err := c.getVersions(module)
+		versions, err := c.getAllVersions(latest)
 		if err == errNoVersions {
 			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
@@ -138,34 +160,112 @@ func (c Command) runForModule(module *internal.Module) error {
 
 var errNoVersions = errors.New("no versions found")
 
-func (c Command) getVersions(module *internal.Module) ([]*semver.Version, error) {
-	versions, err := c.repo.GetVersions(module.Path)
+func (c Command) getAllVersions(latest *internal.Module) ([]*semver.Version, error) {
+	allVersions := make([]*semver.Version, 0)
+	for _, path := range latest.AllPaths {
+		versions, err := c.getVersionsForPath(path, latest.Version.Prerelease() != "")
+		if err != nil {
+			return nil, err
+		}
+		allVersions = append(allVersions, versions...)
+	}
+	sort.Sort(semver.Collection(allVersions))
+	return allVersions, nil
+}
+
+func (c Command) getVersionsForPath(path string, isPrerelease bool) ([]*semver.Version, error) {
+	versions, err := c.repo.GetVersions(path)
+	if err != nil {
+		return nil, err
+	}
+	if len(versions) > 0 {
+		return versions, nil
+	}
+	if !isPrerelease {
+		return nil, errNoVersions
+	}
+	// Try fetching the versions from deps.dev.
+	// Go list does not list prerelease versions, which is fine,
+	// unless we're dealing with a prerelease version ourselves.
+	versions, err = c.fallbackVersions.GetVersions(path)
+	if err != nil {
+		return nil, err
+	}
+	// Check again.
+	if len(versions) == 0 {
+		return nil, errNoVersions
+	}
+	return versions, nil
+}
+
+func (c Command) getLatestInfo(path string) (*internal.Module, error) {
+	var paths []string
+	var latest *internal.Module
+	for {
+		lts, err := c.repo.GetLatestInfo(path)
+		if err != nil {
+			if strings.Contains(err.Error(), "no matching versions") {
+				break
+			}
+			return nil, err
+		}
+		// In case for whatever reason we start endlessly looping here, break it.
+		if latest != nil && latest.Version.Compare(lts.Version) == 0 {
+			return latest, nil
+		}
+		latest = lts
+		if !c.optionIsSet(OptionFindLatestMajor) {
+			break
+		}
+		// Increment major version.
+		var newMajor int64
+		if latest.Version.Major() > 1 {
+			newMajor = latest.Version.Major() + 1
+		} else {
+			newMajor = 2
+		}
+		paths = append(paths, path)
+		path = updatePathVersion(path, latest.Version.Major(), newMajor)
+	}
+	// In case we don't have v2 or above.
+	if len(paths) == 0 {
+		paths = append(paths, latest.Path)
+	}
+	latest.AllPaths = paths
+	return latest, nil
+}
+
+// findFirstModule finds the first module in the given path.
+// If the path has /v2 or higher suffix it will find the first module in this version.
+func (c Command) findFirstModule(path string) (*internal.Module, error) {
+	versions, err := c.repo.GetVersions(path)
 	if err != nil {
 		return nil, err
 	}
 	if len(versions) == 0 {
-		if module.Version.Prerelease() == "" {
-			return nil, errNoVersions
-		}
-		// Try fetching the versions from deps.dev.
-		// Go list does not list prerelease versions, which is fine,
-		// unless we're dealing with a prerelease version ourselves.
-		versions, err = c.fallbackVersions.GetVersions(module.Path)
-		if err != nil {
-			return nil, err
-		}
-		// Check again.
-		if len(versions) == 0 {
-			return nil, errNoVersions
-		}
+		return nil, errors.Errorf("no versions found for path %s, expected at least one", path)
 	}
 	sort.Sort(semver.Collection(versions))
-	return versions, nil
+	return c.repo.GetInfo(path, versions[0])
 }
 
-func calculateLibyear(module, latest *internal.Module) float64 {
-	diff := latest.Time.Sub(module.Time)
-	return diff.Seconds() / secondsInYear
+func updatePathVersion(path string, currentMajor, newMajor int64) string {
+	if currentMajor > 1 {
+		// Only trim the suffix from post-modules version paths.
+		if strings.HasSuffix(path, strconv.Itoa(int(currentMajor))) {
+			path = pathlib.Dir(path)
+		}
+	}
+	return pathlib.Join(path, "v"+strconv.Itoa(int(newMajor)))
+}
+
+func calculateLibyear(moduleTime, latestTime time.Time) float64 {
+	diff := latestTime.Sub(moduleTime)
+	libyear := diff.Seconds() / secondsInYear
+	if libyear < 0 {
+		libyear = 0
+	}
+	return libyear
 }
 
 func calculateReleases(module, latest *internal.Module, versions []*semver.Version) int {

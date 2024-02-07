@@ -70,12 +70,12 @@ func (c *GoProxyClient) getInfo(path string, version *semver.Version, latest boo
 			return m, nil
 		}
 	}
-	path = escapePath(path)
+	escapedPath := escapePath(path)
 	var urlPath string
 	if latest {
-		urlPath = fmt.Sprintf(getLatestInfoFmt, path)
+		urlPath = fmt.Sprintf(getLatestInfoFmt, escapedPath)
 	} else {
-		urlPath = fmt.Sprintf(getVersionInfoFmt, path, version)
+		urlPath = fmt.Sprintf(getVersionInfoFmt, escapedPath, version)
 	}
 	data, err := c.query(urlPath)
 	if err != nil {
@@ -85,6 +85,7 @@ func (c *GoProxyClient) getInfo(path string, version *semver.Version, latest boo
 	if err = json.Unmarshal(data, &m); err != nil {
 		return nil, err
 	}
+	m.Path = path
 	// Save to cache.
 	if c.cache != nil {
 		if err = c.cache.Save(&m); err != nil {

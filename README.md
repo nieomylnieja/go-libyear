@@ -102,16 +102,17 @@ Example:
 
 ### Results manipulation
 
-| Flag           | Explanation                                                |
-|----------------|------------------------------------------------------------|
-| `--releases`   | Count number of releases between current and latest.       |
-| `--versions`   | Calculate version number delta between current and latest. |
-| `--indirect`   | Include indirect dependencies in the results.              |
-| `--skip-fresh` | Skip up-to-date dependencies from the results.             |
+<!-- markdownlint-disable MD013 -->
+
+| Flag                  | Explanation                                                  |
+|-----------------------|--------------------------------------------------------------|
+| `--releases`          | Count number of releases between current and latest.         |
+| `--versions`          | Calculate version number delta between current and latest.   |
+| `--indirect`          | Include indirect dependencies in the results.                |
+| `--skip-fresh`        | Skip up-to-date dependencies from the results.               |
+| `--find-latest-major` | Use next, greater than or equal to v2 version as the latest. |
 
 ### Module sources
-
-<!-- markdownlint-disable MD013 -->
 
 | Source      | Flag      | Example                                                               |
 |-------------|-----------|-----------------------------------------------------------------------|
@@ -139,6 +140,46 @@ flags:
 |---------------------|-------------------------------------|
 | `--cache`           | Enable caching.                     |
 | `--cache-file-path` | Use the specified file fro caching. |
+
+## Go versioning
+
+By default `go-libyear` will fetch the latest version for the current major
+version adhering to the following rules:
+
+- If the current major version is equal to 0.x.x and there's version 1.x.x
+  available, set the latest to 1.x.x.
+- If the current major is equal to or greater than 1.x.x, set the latest
+  to 1.x.x.
+
+If you wish to always set the next major version as the latest, you can use
+the `--find-latest-major` (short `-M`) flag.
+This flag enforces the following rules:
+
+- If the current major is equal to or greater than x.x.x, set the latest
+  to the latest (by semver) available version.
+- If the latest major version is greater than the current major and the
+  current version has been published after the first version of the latest
+  major, the [libyear](#libyear) is calculated as a difference between the
+  first version of the latest major and latest major version.
+
+  Example:
+  > Current version is 1.21.9 (2024-02-01), latest is 2.0.5 (2024-01-19); \
+  1.21.9 was a security fix, it still means we're some time behind v2; \
+  2.0.0 was released on 2024-01-02, this means we're 17 days
+  (2024-01-19 - 2024-01-02) behind the latest v2, despite the fact that we've
+  updated to the latest security patch for v1.
+
+If you wish to not compensate for such cases and leave libyear as is
+(it won't be ever negative, we round it to 0 if negative), use the
+`--no-libyear-compensation` flag.
+
+The [modules reference](https://go.dev/ref/mod) states that:
+> If the module is released at major version 2 or higher,
+  the module path must end with a major version suffix like /v2.
+
+This is however not always the case, some older projects, usually pre-module,
+might not adhere to that.
+The aforementioned flag also works with such scenarios.
 
 ## Caveats
 

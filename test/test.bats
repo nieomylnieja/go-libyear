@@ -20,6 +20,7 @@ setup_file() {
 	export SERVER_PORT
 	export SERVER_HOST
 	export GOPROXY="http://$SERVER_HOST:$SERVER_PORT"
+  export TEST_GO_MOD="$INPUTS/test-go.mod"
 }
 
 # teardown_file is run once for the whole file after all tests finished.
@@ -34,25 +35,25 @@ setup() {
 }
 
 @test "go_proxy: basic usage" {
-	run go-libyear "$INPUTS/go.mod"
+	run go-libyear "$TEST_GO_MOD"
 	assert_success
 	assert_output_equals basic_usage
 }
 
 @test "go_proxy: show indirect" {
-	run go-libyear --indirect "$INPUTS/go.mod"
+	run go-libyear --indirect "$TEST_GO_MOD"
 	assert_success
 	assert_output_equals show_indirect
 }
 
 @test "go_proxy: skip fresh" {
-	run go-libyear --skip-fresh "$INPUTS/go.mod"
+	run go-libyear --skip-fresh "$TEST_GO_MOD"
 	assert_success
 	assert_output_equals skip_fresh
 }
 
 @test "go_proxy: skip fresh but show indirect" {
-	run go-libyear --skip-fresh --indirect "$INPUTS/go.mod"
+	run go-libyear --skip-fresh --indirect "$TEST_GO_MOD"
 	assert_success
 	assert_output_equals skip_fresh_show_indirect
 }
@@ -70,45 +71,70 @@ setup() {
 }
 
 @test "go_proxy: show versions" {
-	run go-libyear --versions "$INPUTS/go.mod"
+	run go-libyear --versions "$TEST_GO_MOD"
 	assert_success
 	assert_output_equals show_versions
 }
 
 @test "go_proxy: show releases" {
-	run go-libyear --releases "$INPUTS/go.mod"
+	run go-libyear --releases "$TEST_GO_MOD"
 	assert_success
 	assert_output_equals show_releases
 }
 
 @test "go_proxy: show all details for all dependencies" {
-	run go-libyear --indirect --versions --releases "$INPUTS/go.mod"
+	run go-libyear --indirect --versions --releases "$TEST_GO_MOD"
 	assert_success
 	assert_output_equals all_details_for_all_dependencies
 }
 
-@test "go_proxy: csv output" {
-	run go-libyear --csv --versions --releases "$INPUTS/go.mod"
+@test "go_proxy: csv output, minimal" {
+	run go-libyear --csv "$TEST_GO_MOD"
 	assert_success
-	assert_output_equals output.csv
+	assert_output_equals output-minimal.csv
 }
 
-@test "go_proxy: json output" {
-	run go-libyear --json --versions --releases "$INPUTS/go.mod"
+@test "go_proxy: csv output, full" {
+	run go-libyear --csv --versions --releases --indirect "$TEST_GO_MOD"
 	assert_success
-	assert_output_equals output.json
+	assert_output_equals output-full.csv
+}
+
+@test "go_proxy: json output, minimal" {
+	run go-libyear --json "$TEST_GO_MOD"
+	assert_success
+	assert_output_equals output-minimal.json
+}
+
+@test "go_proxy: json output, full" {
+	run go-libyear --json --versions --releases --indirect "$TEST_GO_MOD"
+	assert_success
+	assert_output_equals output-full.json
+}
+
+@test "go_proxy: find latest major, full" {
+  bats_require_minimum_version 1.5.0
+	run --separate-stderr go-libyear -M --versions --releases --indirect "$TEST_GO_MOD"
+	assert_success
+	assert_output_equals all_with_latest_major_versions
+}
+
+@test "go_proxy: find latest major, full, no compensate" {
+	run go-libyear -M --no-libyear-compensation --versions --releases --indirect "$TEST_GO_MOD"
+	assert_success
+	assert_output_equals all_with_latest_major_versions_no_compensate
 }
 
 @test "go_proxy: cache with XDG_CACHE_HOME" {
 	export XDG_CACHE_HOME="$BATS_TEST_TMPDIR"
-	run go-libyear --cache "$INPUTS/go.mod"
+	run go-libyear --cache "$TEST_GO_MOD"
 	assert_success
 	assert_cache_contents "$BATS_TEST_TMPDIR/go-libyear/modules"
 }
 
 @test "go_proxy: cache with custom file path" {
 	CACHE_FILE_PATH="$BATS_TEST_TMPDIR/custom-modules"
-	run go-libyear --cache --cache-file-path="$CACHE_FILE_PATH" "$INPUTS/go.mod"
+	run go-libyear --cache --cache-file-path="$CACHE_FILE_PATH" "$TEST_GO_MOD"
 	assert_success
 	assert_cache_contents "$CACHE_FILE_PATH"
 }
@@ -149,9 +175,15 @@ assert_cache_contents() {
 	assert_output "Error: --cache-file-path flag can only be used in conjunction with --cache"
 }
 
+@test "error: compensate flag without major version flag" {
+	run go-libyear --no-libyear-compensation ./some/path
+	assert_failure
+	assert_output "Error: --no-libyear-compensation flag can only be used in conjunction with --find-latest-major"
+}
+
 @test "error: timeout" {
 	for alias in --timeout -t; do
-		run go-libyear --timeout 1ns "$INPUTS/go.mod"
+		run go-libyear --timeout 1ns "$TEST_GO_MOD"
 		assert_failure
 		assert_output --partial "context deadline exceeded"
 	done
@@ -159,7 +191,7 @@ assert_cache_contents() {
 
 @test "error: invalid timeout" {
 	for alias in --timeout -t; do
-		run go-libyear --timeout 1y "$INPUTS/go.mod"
+		run go-libyear --timeout 1y "$TEST_GO_MOD"
 		assert_failure
 		assert_output --partial "parse error"
 	done

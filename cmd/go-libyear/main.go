@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -28,6 +29,7 @@ var (
 var usageText string
 
 func main() {
+	log.SetOutput(os.Stderr)
 	app := &cli.App{
 		Usage:     "Calculate Go module's libyear!",
 		UsageText: usageText,
@@ -47,6 +49,8 @@ func main() {
 			flagReleases,
 			flagVersions,
 			flagVersion,
+			flagFindLatestMajor,
+			flagNoLibyearCompensation,
 		},
 		Suggest: true,
 	}

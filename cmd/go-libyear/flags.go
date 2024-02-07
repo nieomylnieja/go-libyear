@@ -17,11 +17,13 @@ const (
 )
 
 var flagToOption = map[string]golibyear.Option{
-	flagIndirect.Name:  golibyear.OptionIncludeIndirect,
-	flagSkipFresh.Name: golibyear.OptionSkipFresh,
-	flagReleases.Name:  golibyear.OptionShowReleases,
-	flagVersions.Name:  golibyear.OptionShowVersions,
-	flagUseGoList.Name: golibyear.OptionUseGoList,
+	flagIndirect.Name:              golibyear.OptionIncludeIndirect,
+	flagSkipFresh.Name:             golibyear.OptionSkipFresh,
+	flagReleases.Name:              golibyear.OptionShowReleases,
+	flagVersions.Name:              golibyear.OptionShowVersions,
+	flagUseGoList.Name:             golibyear.OptionUseGoList,
+	flagFindLatestMajor.Name:       golibyear.OptionFindLatestMajor,
+	flagNoLibyearCompensation.Name: golibyear.OptionNoLibyearCompensation,
 }
 
 var (
@@ -57,12 +59,7 @@ var (
 		Usage:       "Use custom cache file path",
 		DefaultText: "$XDG_CACHE_HOME/go-libyear/modules or $HOME/.cache/go-libyear/modules",
 		Category:    categoryCache,
-		Action: func(c *cli.Context, path cli.Path) error {
-			if !c.IsSet("cache") {
-				return errors.Errorf("--cache-file-path flag can only be used in conjunction with --cache")
-			}
-			return nil
-		},
+		Action:      useOnlyWith[cli.Path]("cache-file-path", flagCache.Name),
 	}
 	flagTimeout = &cli.DurationFlag{
 		Name:    "timeout",
@@ -95,14 +92,35 @@ var (
 		Usage:    "Display the number of major, minor, and patch versions between current and newest versions",
 		Category: categoryOutput,
 	}
+	flagFindLatestMajor = &cli.BoolFlag{
+		Name:    "find-latest-major",
+		Aliases: []string{"M"},
+		Usage:   "Use next, greater than or equal to v2 version as the latest",
+	}
+	flagNoLibyearCompensation = &cli.BoolFlag{
+		Name: "no-libyear-compensation",
+		Usage: "Do not compensate for negative or zero libyear " +
+			"values if latest version was published before current version",
+		Action: useOnlyWith[bool]("no-libyear-compensation", flagFindLatestMajor.Name),
+	}
 	flagVersion = &cli.BoolFlag{
 		Name:    "version",
 		Aliases: []string{"v"},
 		Usage:   "Show the program version",
-		Action: func(context *cli.Context, b bool) error {
+		Action: func(_ *cli.Context, _ bool) error {
 			fmt.Printf("Version: %s\nGitTag: %s\nBuildDate: %s\n",
 				BuildVersion, BuildGitTag, BuildDate)
 			return nil
 		},
 	}
 )
+
+// useOnlyWith creates an action which will verify if this flag was used with the dependent flag.
+func useOnlyWith[T any](this, dependent string) func(*cli.Context, T) error {
+	return func(ctx *cli.Context, _ T) error {
+		if !ctx.IsSet(dependent) {
+			return errors.Errorf("--%s flag can only be used in conjunction with --%s", this, dependent)
+		}
+		return nil
+	}
+}

@@ -1,0 +1,9 @@
+package,version,date,latest,latest_date,libyear,releases,versions
+github.com/test/test,,$MAIN_DATE,,,13.33,70,"[2, 2, 2]"
+github.com/BurntSushi/toml,0.4.1,2021-08-05,1.3.2,2023-06-08,1.84,7,"[1, 0, 0]"
+github.com/lestrrat-go/jwx,1.2.28,2024-01-09,1.2.28,2024-01-09,0.00,0,"[0, 0, 0]"
+github.com/pkg/errors,0.8.0,2016-09-29,0.9.1,2020-01-14,3.30,3,"[0, 1, 0]"
+golang.org/x/sync,0.5.0,2023-10-11,0.6.0,2023-12-07,0.16,1,"[0, 1, 0]"
+github.com/go-playground/validator,8.18.2+incompatible,2017-07-30,9.31.0+incompatible,2019-12-25,2.41,54,"[1, 0, 0]"
+github.com/cpuguy83/go-md2man/v2,2.0.1,2021-07-16,2.0.3,2023-10-10,2.24,2,"[0, 0, 2]"
+github.com/xrash/smetrics,0.0.0-20200723181607-f06e43cca1ab,2020-07-23,0.0.0-20231213231151-1d8dd44e695e,2023-12-13,3.39,3,"[0, 0, 0]"

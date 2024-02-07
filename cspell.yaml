@@ -30,6 +30,7 @@ words:
   - goimports
   - golangci
   - golibyear
+  - gomock
   - gosec
   - govulncheck
   - ifeq
