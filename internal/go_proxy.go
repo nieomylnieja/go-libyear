@@ -1,18 +1,22 @@
 package internal
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
+	"golang.org/x/mod/module"
 )
 
 func NewGoProxyClient(useCache bool, cacheFilePath string) (*GoProxyClient, error) {
@@ -33,18 +37,20 @@ func NewGoProxyClient(useCache bool, cacheFilePath string) (*GoProxyClient, erro
 		apiURL = *u
 	}
 	return &GoProxyClient{
-		http:   &http.Client{Timeout: 10 * time.Second},
-		apiURL: apiURL,
-		cache:  cache,
+		http:      &http.Client{Timeout: 10 * time.Second},
+		apiURL:    apiURL,
+		cache:     cache,
+		goprivate: os.Getenv("GOPRIVATE"),
 	}, nil
 }
 
 // GoProxyClient is used to interact with Golang proxy server.
 // Details on GOPROXY protocol can be found here: https://go.dev/ref/mod#goproxy-protocol.
 type GoProxyClient struct {
-	http   *http.Client
-	apiURL url.URL
-	cache  modulesCache
+	http      *http.Client
+	apiURL    url.URL
+	cache     modulesCache
+	goprivate string
 }
 
 const (
@@ -62,7 +68,31 @@ func (c *GoProxyClient) GetLatestInfo(path string) (*Module, error) {
 	return c.getInfo(path, nil, true)
 }
 
+var githubRegexp = regexp.MustCompile(`^(?P<root>github\.com/[\w.\-]+/[\w.\-]+)(/[\w.\-]+)*$`)
+
 func (c *GoProxyClient) getInfo(path string, version *semver.Version, latest bool) (*Module, error) {
+	if c.isPrivate(path) {
+		m := githubRegexp.FindStringSubmatch(path)
+		if m == nil {
+			return nil, errors.Errorf(
+				"unsupported private module path: %s, private modules must match '%s' regexp",
+				path, githubRegexp)
+		}
+
+		var root string
+		for i, name := range githubRegexp.SubexpNames() {
+			if name == "root" {
+				root = m[i]
+			}
+		}
+		repoURL := "https://" + root + ".git"
+		dst := filepath.Join("/home/mh/lol", root)
+		err := execGitCmd("clone", "--", repoURL, dst)
+		if err != nil {
+			panic(err)
+		}
+		panic("ye")
+	}
 	// Try loading from cache.
 	if version != nil && c.cache != nil {
 		m, loaded := c.cache.Load(path, version)
@@ -136,6 +166,10 @@ func (c *GoProxyClient) query(urlPath string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+func (c GoProxyClient) isPrivate(path string) bool {
+	return module.MatchPrefixPatterns(c.goprivate, path)
+}
+
 var uppercaseRegex = regexp.MustCompile(`[A-Z]`)
 
 func escapePath(path string) string {
@@ -144,4 +178,18 @@ func escapePath(path string) string {
 		return "!" + strings.ToLower(s)
 	})
 	return url.PathEscape(path)
+}
+
+func execGitCmd(args ...string) error {
+	// #nosec G204
+	cmd := exec.Command("git", args...)
+	if cmd.Stderr != nil {
+		return errors.New("exec: Stderr already set")
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return errors.Errorf("Failed to execute '%s' command: %s", cmd, stderr.String())
+	}
+	return nil
 }
