@@ -102,6 +102,8 @@ Example:
 
 ### Results manipulation
 
+<!-- markdownlint-disable MD013 -->
+
 | Flag                  | Explanation                                                  |
 |-----------------------|--------------------------------------------------------------|
 | `--releases`          | Count number of releases between current and latest.         |
@@ -111,8 +113,6 @@ Example:
 | `--find-latest-major` | Use next, greater than or equal to v2 version as the latest. |
 
 ### Module sources
-
-<!-- markdownlint-disable MD013 -->
 
 | Source      | Flag      | Example                                                               |
 |-------------|-----------|-----------------------------------------------------------------------|
@@ -168,7 +168,6 @@ This flag enforces the following rules:
   2.0.0 was released on 2024-01-02, this means we're 17 days
   (2024-01-19 - 2024-01-02) behind the latest v2, despite the fact that we've
   updated to the latest security patch for v1.
-
 
 The [modules reference](https://go.dev/ref/mod) states that:
 > If the module is released at major version 2 or higher,

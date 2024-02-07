@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/nieomylnieja/go-libyear/internal"
-	"github.com/pkg/errors"
 
 	"github.com/Masterminds/semver"
+	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -132,7 +132,7 @@ func (c Command) runForModule(module *internal.Module) error {
 		}
 		log.Printf("INFO: current module version %s is newer than latest version %s; "+
 			"libyear will be calculated from the first version of latest major (%s) to the latest version (%s); "+
-			"if you wish to disable this behaviour, use --allow-negative-libyear flag",
+			"if you wish to disable this behavior, use --allow-negative-libyear flag",
 			module.Version, latest.Version, first.Version, module.Version)
 		currentTime = first.Time
 	}

@@ -17,13 +17,13 @@ const (
 )
 
 var flagToOption = map[string]golibyear.Option{
-	flagIndirect.Name:        golibyear.OptionIncludeIndirect,
-	flagSkipFresh.Name:       golibyear.OptionSkipFresh,
-	flagReleases.Name:        golibyear.OptionShowReleases,
-	flagVersions.Name:        golibyear.OptionShowVersions,
-	flagUseGoList.Name:       golibyear.OptionUseGoList,
-	flagFindLatestMajor.Name: golibyear.OptionFindLatestMajor,
-	flagFindLatestMajor.Name: golibyear.OptionNoLibyearCompensation,
+	flagIndirect.Name:              golibyear.OptionIncludeIndirect,
+	flagSkipFresh.Name:             golibyear.OptionSkipFresh,
+	flagReleases.Name:              golibyear.OptionShowReleases,
+	flagVersions.Name:              golibyear.OptionShowVersions,
+	flagUseGoList.Name:             golibyear.OptionUseGoList,
+	flagFindLatestMajor.Name:       golibyear.OptionFindLatestMajor,
+	flagNoLibyearCompensation.Name: golibyear.OptionNoLibyearCompensation,
 }
 
 var (
@@ -98,8 +98,9 @@ var (
 		Usage:   "Use next, greater than or equal to v2 version as the latest",
 	}
 	flagNoLibyearCompensation = &cli.BoolFlag{
-		Name:   "no-libyear-compensation",
-		Usage:  "Do not compensate for negative or zero libyear values if latest version was published before current version",
+		Name: "no-libyear-compensation",
+		Usage: "Do not compensate for negative or zero libyear " +
+			"values if latest version was published before current version",
 		Action: useOnlyWith[bool]("no-libyear-compensation", flagFindLatestMajor.Name),
 	}
 	flagVersion = &cli.BoolFlag{

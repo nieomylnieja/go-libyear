@@ -27,7 +27,7 @@ type Module struct {
 	ReleasesDiff int `json:"-"`
 	// VersionsDiff is an array of 3 elements: major, minor and patch versions.
 	VersionsDiff VersionsDiff `json:"-"`
-	// AllPaths preceeding this version, if any.
+	// AllPaths preceding this version, if any.
 	// This field is only set for latest version.
 	AllPaths []string `json:"-"`
 }
