@@ -7,19 +7,20 @@ set -eo pipefail
 test_go_mod="github.com/test/test"
 
 repos=(
-	# github.com/pkg/errors
-	# golang.org/x/sync
-	# github.com/cpuguy83/go-md2man/v2
+	github.com/pkg/errors
+	golang.org/x/sync
+	github.com/cpuguy83/go-md2man/v2
 	github.com/xrash/smetrics
-	# github.com/BurntSushi/toml
-	# github.com/lestrrat-go/jwx
-	# github.com/lestrrat-go/jwx/v2
-	# github.com/go-playground/validator
+	github.com/BurntSushi/toml
+	github.com/lestrrat-go/jwx
+	github.com/lestrrat-go/jwx/v2
+	github.com/go-playground/validator
+	github.com/go-playground/validator/v10
 )
 
 json=""
 for repo in "${repos[@]}"; do
-	versions=$(go list -m -json -versions "$repo" | jq .Versions)
+	versions=$(go list -m -u -json -versions "$repo" | jq .Versions)
 	if [[ $versions == "null" ]]; then
 		versions=$(curl --silent "https://api.deps.dev/v3alpha/systems/go/packages/${repo//\//%2F}" |
 			jq -c [.versions[].versionKey.version])

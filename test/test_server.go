@@ -41,7 +41,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Serving: ", path)
 	v, ok := h.R[path]
 	if !ok {
-		http.Error(w, fmt.Sprintf("path not found: %s", path), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("no matching versions found for: %s", path), http.StatusNotFound)
 		return
 	}
 	switch {

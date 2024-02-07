@@ -228,17 +228,12 @@
     "Version": "v1.3.2",
     "Time": "2023-06-08T06:14:45Z"
   },
-  "github.com/!burnt!sushi/toml": {
-    "Path": "github.com/BurntSushi/toml",
-    "Version": "v2.0.0-experimental",
-    "Time": "2021-08-05T05:14:45Z"
-  },
   "github.com/!burnt!sushi/toml/@latest": {
     "Path": "github.com/BurntSushi/toml",
     "Version": "v1.3.2",
     "Time": "2023-06-08T06:14:45Z"
   },
-  "github.com/!burnt!sushi/toml/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.3.1\nv0.4.0\nv0.4.1\nv1.0.0\nv1.1.0\nv1.2.0\nv1.2.1\nv1.3.0\nv1.3.1\nv1.3.2\nv2.0.0-experimental",
+  "github.com/!burnt!sushi/toml/@v/list": "v0.1.0\nv0.2.0\nv0.3.0\nv0.3.1\nv0.4.0\nv0.4.1\nv1.0.0\nv1.1.0\nv1.2.0\nv1.2.1\nv1.3.0\nv1.3.1\nv1.3.2",
   "github.com/lestrrat-go/jwx/@v/v0.9.0.info": {
     "Path": "github.com/lestrrat-go/jwx",
     "Version": "v0.9.0",
@@ -1037,6 +1032,172 @@
     "Time": "2019-12-25T05:24:06Z"
   },
   "github.com/go-playground/validator/@v/list": "v3.0.1+incompatible\nv3.0.2+incompatible\nv4.0.1+incompatible\nv4.0.3+incompatible\nv4.0.4+incompatible\nv5.0.1+incompatible\nv5.0.2+incompatible\nv5.5.1+incompatible\nv5.6.1+incompatible\nv5.7.1+incompatible\nv5.8.1+incompatible\nv5.9.1+incompatible\nv5.9.2+incompatible\nv5.10.1+incompatible\nv5.10.2+incompatible\nv5.10.3+incompatible\nv6.0.1+incompatible\nv6.0.2+incompatible\nv6.1.1+incompatible\nv6.5.1+incompatible\nv8.0.1+incompatible\nv8.8.1+incompatible\nv8.15.1+incompatible\nv8.17.1+incompatible\nv8.17.2+incompatible\nv8.17.3+incompatible\nv8.18.0+incompatible\nv8.18.1+incompatible\nv8.18.2+incompatible\nv9.0.0+incompatible\nv9.1.0+incompatible\nv9.1.1+incompatible\nv9.1.2+incompatible\nv9.1.3+incompatible\nv9.2.0+incompatible\nv9.2.1+incompatible\nv9.2.2+incompatible\nv9.3.0+incompatible\nv9.3.1+incompatible\nv9.3.2+incompatible\nv9.3.3+incompatible\nv9.3.4+incompatible\nv9.3.5+incompatible\nv9.3.6+incompatible\nv9.4.0+incompatible\nv9.5.0+incompatible\nv9.6.0+incompatible\nv9.7.0+incompatible\nv9.8.0+incompatible\nv9.9.0+incompatible\nv9.9.1+incompatible\nv9.9.2+incompatible\nv9.9.3+incompatible\nv9.9.4+incompatible\nv9.10.0+incompatible\nv9.11.0+incompatible\nv9.12.0+incompatible\nv9.13.0+incompatible\nv9.14.0+incompatible\nv9.15.0+incompatible\nv9.16.0+incompatible\nv9.16.1+incompatible\nv9.17.0+incompatible\nv9.17.1+incompatible\nv9.19.0+incompatible\nv9.20.0+incompatible\nv9.20.1+incompatible\nv9.20.2+incompatible\nv9.21.0+incompatible\nv9.21.1+incompatible\nv9.22.0+incompatible\nv9.23.0+incompatible\nv9.24.0+incompatible\nv9.25.0+incompatible\nv9.26.0+incompatible\nv9.27.0+incompatible\nv9.28.0+incompatible\nv9.29.0+incompatible\nv9.29.1+incompatible\nv9.30.0+incompatible\nv9.30.1+incompatible\nv9.30.2+incompatible\nv9.31.0+incompatible",
+  "github.com/go-playground/validator/v10/@v/v10.0.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.0.0",
+    "Time": "2019-11-11T20:42:35Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.0.1.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.0.1",
+    "Time": "2019-11-17T21:24:22Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.1.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.1.0",
+    "Time": "2019-12-25T05:43:24Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.2.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.2.0",
+    "Time": "2020-02-09T17:35:38Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.3.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.3.0",
+    "Time": "2020-05-21T06:13:22Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.4.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.4.0",
+    "Time": "2020-09-27T22:48:22Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.4.1.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.4.1",
+    "Time": "2020-10-17T15:49:42Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.4.2.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.4.2",
+    "Time": "2021-04-06T01:24:36Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.5.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.5.0",
+    "Time": "2021-04-07T04:02:04Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.6.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.6.0",
+    "Time": "2021-05-06T14:52:12Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.6.1.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.6.1",
+    "Time": "2021-05-12T00:37:45Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.6.2.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.6.2",
+    "Time": "2021-07-08T05:26:48Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.7.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.7.0",
+    "Time": "2021-07-08T05:40:03Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.8.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.8.0",
+    "Time": "2021-07-26T04:34:52Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.9.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.9.0",
+    "Time": "2021-08-08T22:56:07Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.10.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.10.0",
+    "Time": "2022-01-02T01:40:00Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.10.1.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.10.1",
+    "Time": "2022-03-08T01:32:10Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.11.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.11.0",
+    "Time": "2022-05-01T17:01:11Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.11.1.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.11.1",
+    "Time": "2022-09-16T16:01:33Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.11.2.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.11.2",
+    "Time": "2023-01-30T04:43:00Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.12.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.12.0",
+    "Time": "2023-03-20T00:23:43Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.13.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.13.0",
+    "Time": "2023-04-29T15:13:03Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.14.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.14.0",
+    "Time": "2023-05-21T14:32:07Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.14.1.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.14.1",
+    "Time": "2023-06-04T14:39:12Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.15.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.15.0",
+    "Time": "2023-08-06T17:13:12Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.15.1.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.15.1",
+    "Time": "2023-08-17T15:00:13Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.15.2.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.15.2",
+    "Time": "2023-08-29T03:51:39Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.15.3.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.15.3",
+    "Time": "2023-08-30T05:00:57Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.15.4.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.15.4",
+    "Time": "2023-09-13T00:51:18Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.15.5.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.15.5",
+    "Time": "2023-10-02T03:28:25Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.16.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.16.0",
+    "Time": "2023-11-04T15:49:36Z"
+  },
+  "github.com/go-playground/validator/v10/@v/v10.17.0.info": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.17.0",
+    "Time": "2024-01-14T04:49:43Z"
+  },
+  "github.com/go-playground/validator/v10/@latest": {
+    "Path": "github.com/go-playground/validator/v10",
+    "Version": "v10.17.0",
+    "Time": "2024-01-14T04:49:43Z"
+  },
+  "github.com/go-playground/validator/v10/@v/list": "v10.0.0\nv10.0.1\nv10.1.0\nv10.2.0\nv10.3.0\nv10.4.0\nv10.4.1\nv10.4.2\nv10.5.0\nv10.6.0\nv10.6.1\nv10.6.2\nv10.7.0\nv10.8.0\nv10.9.0\nv10.10.0\nv10.10.1\nv10.11.0\nv10.11.1\nv10.11.2\nv10.12.0\nv10.13.0\nv10.14.0\nv10.14.1\nv10.15.0\nv10.15.1\nv10.15.2\nv10.15.3\nv10.15.4\nv10.15.5\nv10.16.0\nv10.17.0",
   "github.com/test/test/@latest": "v1.0.0",
   "github.com/test/test/@v/v1.0.0.mod": "./test/inputs/test-go.mod"
 }

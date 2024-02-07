@@ -112,6 +112,19 @@ setup() {
 	assert_output_equals output-full.json
 }
 
+@test "go_proxy: find latest major, full" {
+  bats_require_minimum_version 1.5.0
+	run --separate-stderr go-libyear -M --versions --releases --indirect "$TEST_GO_MOD"
+	assert_success
+	assert_output_equals all_with_latest_major_versions
+}
+
+@test "go_proxy: find latest major, full, no compensate" {
+	run go-libyear -M --no-libyear-compensation --versions --releases --indirect "$TEST_GO_MOD"
+	assert_success
+	assert_output_equals all_with_latest_major_versions_no_compensate
+}
+
 @test "go_proxy: cache with XDG_CACHE_HOME" {
 	export XDG_CACHE_HOME="$BATS_TEST_TMPDIR"
 	run go-libyear --cache "$TEST_GO_MOD"
@@ -160,6 +173,12 @@ assert_cache_contents() {
 	run go-libyear --cache-file-path ./some/path
 	assert_failure
 	assert_output "Error: --cache-file-path flag can only be used in conjunction with --cache"
+}
+
+@test "error: compensate flag without major version flag" {
+	run go-libyear --no-libyear-compensation ./some/path
+	assert_failure
+	assert_output "Error: --no-libyear-compensation flag can only be used in conjunction with --find-latest-major"
 }
 
 @test "error: timeout" {
