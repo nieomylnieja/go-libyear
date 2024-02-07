@@ -593,7 +593,7 @@ func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable_NoCompensate(t *testin
 	err := cmd.runForModule(module)
 
 	require.NoError(t, err)
-	assert.InEpsilon(t, 0., module.Libyear, 0)
+	assert.Zero(t, module.Libyear)
 }
 
 func mustParseTime(t *testing.T, date string) time.Time {
