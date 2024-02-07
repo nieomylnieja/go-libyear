@@ -17,12 +17,6 @@ import (
 )
 
 func TestCommand_calculateLibyear(t *testing.T) {
-	mustParseTime := func(date string) time.Time {
-		t.Helper()
-		parsed, _ := time.Parse(time.DateOnly, date)
-		return parsed
-	}
-
 	tests := []struct {
 		CurrentDate string
 		LatestDate  string
@@ -64,8 +58,8 @@ func TestCommand_calculateLibyear(t *testing.T) {
 	for i, test := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			actual := calculateLibyear(
-				&internal.Module{Time: mustParseTime(test.CurrentDate)},
-				&internal.Module{Time: mustParseTime(test.LatestDate)})
+				mustParseTime(t, test.CurrentDate),
+				mustParseTime(t, test.LatestDate))
 			if test.Expected == 0 {
 				assert.Zero(t, actual)
 			} else {
@@ -346,7 +340,6 @@ func TestCommand_GetLatestInfo(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-
 			modulesRepo := mocks.NewMockModulesRepo(ctrl)
 			for _, call := range test.Calls {
 				modulesRepo.EXPECT().
@@ -484,7 +477,6 @@ func TestCommand_GetVersions(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-
 			modulesRepo := mocks.NewMockModulesRepo(ctrl)
 			versionsGetter := mocks.NewMockVersionsGetter(ctrl)
 			for _, call := range test.Calls {
@@ -514,4 +506,98 @@ func TestCommand_GetVersions(t *testing.T) {
 			assert.Equal(t, test.Expected, versions)
 		})
 	}
+}
+
+func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	currentLatest := &internal.Module{
+		Path:    "github.com/go-playground/validator",
+		Version: semver.MustParse("v9.4.1+incompatible"),
+		Time:    mustParseTime(t, "2023-01-14"),
+	}
+	modulesRepo := mocks.NewMockModulesRepo(ctrl)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/go-playground/validator").
+		Times(1).
+		Return(currentLatest, nil)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/go-playground/validator/v10").
+		Times(1).
+		Return(&internal.Module{
+			Path:    "github.com/go-playground/validator/v10",
+			Version: semver.MustParse("v10.1.0"),
+			Time:    mustParseTime(t, "2023-01-10"),
+		}, nil)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/go-playground/validator/v11").
+		Times(1).
+		Return(nil, errors.New("no matching versions found"))
+	modulesRepo.EXPECT().
+		GetVersions("github.com/go-playground/validator/v10").
+		Times(1).
+		// Not sorted on purpose.
+		Return([]*semver.Version{
+			semver.MustParse("v10.0.1"),
+			semver.MustParse("v10.0.0"),
+			semver.MustParse("v10.1.0"),
+		}, nil)
+	modulesRepo.EXPECT().
+		GetInfo("github.com/go-playground/validator/v10", semver.MustParse("v10.0.0")).
+		Times(1).
+		Return(&internal.Module{
+			Version: semver.MustParse("v10.0.0"),
+			Time:    mustParseTime(t, "2023-01-01"),
+		}, nil)
+	cmd := Command{
+		repo: modulesRepo,
+		opts: OptionFindLatestMajor,
+	}
+
+	module := currentLatest
+	err := cmd.runForModule(module)
+
+	require.NoError(t, err)
+	assert.Equal(t, 9./365., module.Libyear)
+}
+
+func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable_NoCompensate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	currentLatest := &internal.Module{
+		Path:    "github.com/go-playground/validator",
+		Version: semver.MustParse("v9.4.1+incompatible"),
+		Time:    mustParseTime(t, "2023-01-14"),
+	}
+	modulesRepo := mocks.NewMockModulesRepo(ctrl)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/go-playground/validator").
+		Times(1).
+		Return(currentLatest, nil)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/go-playground/validator/v10").
+		Times(1).
+		Return(&internal.Module{
+			Path:    "github.com/go-playground/validator/v10",
+			Version: semver.MustParse("v10.1.0"),
+			Time:    mustParseTime(t, "2023-01-10"),
+		}, nil)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/go-playground/validator/v11").
+		Times(1).
+		Return(nil, errors.New("no matching versions found"))
+	cmd := Command{
+		repo: modulesRepo,
+		opts: OptionFindLatestMajor | OptionNoLibyearCompensation,
+	}
+
+	module := currentLatest
+	err := cmd.runForModule(module)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0., module.Libyear)
+}
+
+func mustParseTime(t *testing.T, date string) time.Time {
+	t.Helper()
+	parsed, _ := time.Parse(time.DateOnly, date)
+	return parsed
 }

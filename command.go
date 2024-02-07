@@ -2,7 +2,6 @@ package libyear
 
 import (
 	"context"
-	"errors"
 	"log"
 	"os"
 	pathlib "path"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/nieomylnieja/go-libyear/internal"
+	"github.com/pkg/errors"
 
 	"github.com/Masterminds/semver"
 	"golang.org/x/sync/errgroup"
@@ -21,12 +21,13 @@ import (
 type Option int
 
 const (
-	OptionShowReleases    Option = 1 << iota // 1
-	OptionShowVersions                       // 2
-	OptionSkipFresh                          // 4
-	OptionIncludeIndirect                    // 8
-	OptionUseGoList                          // 16
-	OptionFindLatestMajor                    // 32
+	OptionShowReleases          Option = 1 << iota // 1
+	OptionShowVersions                             // 2
+	OptionSkipFresh                                // 4
+	OptionIncludeIndirect                          // 8
+	OptionUseGoList                                // 16
+	OptionFindLatestMajor                          // 32
+	OptionNoLibyearCompensation                    // 32
 )
 
 //go:generate mockgen -destination internal/mocks/mocks.go -package mocks -typed . ModulesRepo,VersionsGetter
@@ -123,8 +124,20 @@ func (c Command) runForModule(module *internal.Module) error {
 		module.Time = fetchedModule.Time
 	}
 
+	currentTime := module.Time
+	if !c.optionIsSet(OptionNoLibyearCompensation) && module.Time.After(latest.Time) {
+		first, err := c.findFirstModule(latest.Path)
+		if err != nil {
+			return err
+		}
+		log.Printf("INFO: current module version %s is newer than latest version %s; "+
+			"libyear will be calculated from the first version of latest major (%s) to the latest version (%s); "+
+			"if you wish to disable this behaviour, use --allow-negative-libyear flag",
+			module.Version, latest.Version, first.Version, module.Version)
+		currentTime = first.Time
+	}
 	// The following calculations are based on https://ericbouwers.github.io/papers/icse15.pdf.
-	module.Libyear = calculateLibyear(module, latest)
+	module.Libyear = calculateLibyear(currentTime, latest.Time)
 	if c.optionIsSet(OptionShowReleases) {
 		versions, err := c.getAllVersions(latest)
 		if err == errNoVersions {
@@ -218,6 +231,20 @@ func (c Command) getLatestInfo(path string) (*internal.Module, error) {
 	return latest, nil
 }
 
+// findFirstModule finds the first module in the given path.
+// If the path has /v2 or higher suffix it will find the first module in this version.
+func (c Command) findFirstModule(path string) (*internal.Module, error) {
+	versions, err := c.repo.GetVersions(path)
+	if err != nil {
+		return nil, err
+	}
+	if len(versions) == 0 {
+		return nil, errors.Errorf("no versions found for path %s, expected at least one", path)
+	}
+	sort.Sort(semver.Collection(versions))
+	return c.repo.GetInfo(path, versions[0])
+}
+
 func updatePathVersion(path string, currentMajor, newMajor int64) string {
 	if currentMajor > 1 {
 		// Only trim the suffix from post-modules version paths.
@@ -228,8 +255,8 @@ func updatePathVersion(path string, currentMajor, newMajor int64) string {
 	return pathlib.Join(path, "v"+strconv.Itoa(int(newMajor)))
 }
 
-func calculateLibyear(module, latest *internal.Module) float64 {
-	diff := latest.Time.Sub(module.Time)
+func calculateLibyear(moduleTime, latestTime time.Time) float64 {
+	diff := latestTime.Sub(moduleTime)
 	libyear := diff.Seconds() / secondsInYear
 	if libyear < 0 {
 		libyear = 0

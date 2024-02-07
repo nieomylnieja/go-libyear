@@ -23,6 +23,7 @@ var flagToOption = map[string]golibyear.Option{
 	flagVersions.Name:        golibyear.OptionShowVersions,
 	flagUseGoList.Name:       golibyear.OptionUseGoList,
 	flagFindLatestMajor.Name: golibyear.OptionFindLatestMajor,
+	flagFindLatestMajor.Name: golibyear.OptionNoLibyearCompensation,
 }
 
 var (
@@ -58,12 +59,7 @@ var (
 		Usage:       "Use custom cache file path",
 		DefaultText: "$XDG_CACHE_HOME/go-libyear/modules or $HOME/.cache/go-libyear/modules",
 		Category:    categoryCache,
-		Action: func(ctx *cli.Context, _ cli.Path) error {
-			if !ctx.IsSet("cache") {
-				return errors.Errorf("--cache-file-path flag can only be used in conjunction with --cache")
-			}
-			return nil
-		},
+		Action:      useOnlyWith[cli.Path]("cache-file-path", flagCache.Name),
 	}
 	flagTimeout = &cli.DurationFlag{
 		Name:    "timeout",
@@ -101,6 +97,11 @@ var (
 		Aliases: []string{"M"},
 		Usage:   "Use next, greater than or equal to v2 version as the latest",
 	}
+	flagNoLibyearCompensation = &cli.BoolFlag{
+		Name:   "no-libyear-compensation",
+		Usage:  "Do not compensate for negative or zero libyear values if latest version was published before current version",
+		Action: useOnlyWith[bool]("no-libyear-compensation", flagFindLatestMajor.Name),
+	}
 	flagVersion = &cli.BoolFlag{
 		Name:    "version",
 		Aliases: []string{"v"},
@@ -112,3 +113,13 @@ var (
 		},
 	}
 )
+
+// useOnlyWith creates an action which will verify if this flag was used with the dependent flag.
+func useOnlyWith[T any](this, dependent string) func(*cli.Context, T) error {
+	return func(ctx *cli.Context, _ T) error {
+		if !ctx.IsSet(dependent) {
+			return errors.Errorf("--%s flag can only be used in conjunction with --%s", this, dependent)
+		}
+		return nil
+	}
+}
