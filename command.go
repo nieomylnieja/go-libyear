@@ -125,16 +125,20 @@ func (c Command) runForModule(module *internal.Module) error {
 	}
 
 	currentTime := module.Time
-	if !c.optionIsSet(OptionNoLibyearCompensation) && module.Time.After(latest.Time) {
+	if c.optionIsSet(OptionFindLatestMajor) &&
+		!c.optionIsSet(OptionNoLibyearCompensation) &&
+		module.Path != latest.Path {
 		first, err := c.findFirstModule(latest.Path)
 		if err != nil {
 			return err
 		}
-		log.Printf("INFO: current module version %s is newer than latest version %s; "+
-			"libyear will be calculated from the first version of latest major (%s) to the latest version (%s); "+
-			"if you wish to disable this behavior, use --allow-negative-libyear flag",
-			module.Version, latest.Version, first.Version, module.Version)
-		currentTime = first.Time
+		if module.Time.After(first.Time) {
+			log.Printf("INFO: current module version %s is newer than latest version %s; "+
+				"libyear will be calculated from the first version of latest major (%s) to the latest version (%s); "+
+				"if you wish to disable this behavior, use --allow-negative-libyear flag",
+				module.Version, latest.Version, first.Version, module.Version)
+			currentTime = first.Time
+		}
 	}
 	// The following calculations are based on https://ericbouwers.github.io/papers/icse15.pdf.
 	module.Libyear = calculateLibyear(currentTime, latest.Time)

@@ -513,7 +513,7 @@ func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable(t *testing.T) {
 	currentLatest := &internal.Module{
 		Path:    "github.com/go-playground/validator",
 		Version: semver.MustParse("v9.4.1+incompatible"),
-		Time:    mustParseTime(t, "2023-01-14"),
+		Time:    mustParseTime(t, "2023-01-08"),
 	}
 	modulesRepo := mocks.NewMockModulesRepo(ctrl)
 	modulesRepo.EXPECT().
