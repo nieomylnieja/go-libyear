@@ -12,6 +12,8 @@ import (
 	"github.com/Masterminds/semver"
 )
 
+const defaultCacheFileName = "modules"
+
 type modulesCache interface {
 	Load(path string, version *semver.Version) (*Module, bool)
 	Save(m *Module) error
@@ -116,9 +118,10 @@ func (c *Cache) moduleHash(path string, version *semver.Version) string {
 func newFilePersistence(filePath string) (*filePersistence, error) {
 	if filePath == "" {
 		var err error
-		if filePath, err = getDefaultCacheFilePath(); err != nil {
+		if filePath, err = GetDefaultCacheBasePath(); err != nil {
 			return nil, err
 		}
+		filePath = filepath.Join(filePath, defaultCacheFileName)
 	}
 	// The function does an os.Stat under the hood anyway, so there's no gain in pre-checking this step.
 	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
@@ -156,15 +159,14 @@ func (f filePersistence) Load() ([]persistedModule, error) {
 	return modules, nil
 }
 
-func getDefaultCacheFilePath() (string, error) {
-	const defaultFile = "modules"
+func GetDefaultCacheBasePath() (string, error) {
 	filePath, envSet := os.LookupEnv("XDG_CACHE_HOME")
 	if envSet {
-		return filepath.Join(filePath, ProgramName, defaultFile), nil
+		return filepath.Join(filePath, ProgramName), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", ProgramName, defaultFile), nil
+	return filepath.Join(home, ".config", ProgramName), nil
 }

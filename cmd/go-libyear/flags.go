@@ -61,6 +61,12 @@ var (
 		Category:    categoryCache,
 		Action:      useOnlyWith[cli.Path]("cache-file-path", flagCache.Name),
 	}
+	flagVCSCacheDir = &cli.PathFlag{
+		Name:        "vcs-cache-dir",
+		Usage:       "Use custom cache directory for VCS modules (downloaded due to GOPRIVATE settings)",
+		DefaultText: "$XDG_CACHE_HOME/go-libyear/vcs or $HOME/.cache/go-libyear/vcs",
+		Category:    categoryCache,
+	}
 	flagTimeout = &cli.DurationFlag{
 		Name:    "timeout",
 		Aliases: []string{"t"},

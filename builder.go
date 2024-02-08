@@ -1,6 +1,10 @@
 package libyear
 
-import "github.com/nieomylnieja/go-libyear/internal"
+import (
+	"path/filepath"
+
+	"github.com/nieomylnieja/go-libyear/internal"
+)
 
 func NewCommandBuilder(source Source, output Output) CommandBuilder {
 	return CommandBuilder{
@@ -17,6 +21,8 @@ type CommandBuilder struct {
 	withCache     bool
 	cacheFilePath string
 	opts          Option
+	goprivate     string
+	vcsRegistry   *VCSRegistry
 }
 
 func (b CommandBuilder) WithCache(cacheFilePath string) CommandBuilder {
@@ -42,6 +48,16 @@ func (b CommandBuilder) WithOptions(opts ...Option) CommandBuilder {
 	return b
 }
 
+func (b CommandBuilder) WithGOPRIVATE(pattern string) CommandBuilder {
+	b.goprivate = pattern
+	return b
+}
+
+func (b CommandBuilder) WithVCSRegistry(registry *VCSRegistry) CommandBuilder {
+	b.vcsRegistry = registry
+	return b
+}
+
 func (b CommandBuilder) Build() (*Command, error) {
 	if b.repo == nil {
 		var err error
@@ -61,11 +77,21 @@ func (b CommandBuilder) Build() (*Command, error) {
 	if v, ok := b.source.(interface{ SetModulesRepo(repo ModulesRepo) }); ok {
 		v.SetModulesRepo(b.repo)
 	}
+	if b.vcsRegistry == nil {
+		cacheBase, err := internal.GetDefaultCacheBasePath()
+		if err != nil {
+			return nil, err
+		}
+		cacheDir := filepath.Join(cacheBase, "vcs")
+		b.vcsRegistry = NewVCSRegistry(cacheDir)
+	}
 	return &Command{
 		source:           b.source,
 		output:           b.output,
 		repo:             b.repo,
 		fallbackVersions: b.fallback,
 		opts:             b.opts,
+		goprivate:        b.goprivate,
+		vcs:              b.vcsRegistry,
 	}, nil
 }

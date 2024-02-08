@@ -30,6 +30,8 @@ type Module struct {
 	// AllPaths preceding this version, if any.
 	// This field is only set for latest version.
 	AllPaths []string `json:"-"`
+	// IsPrivate informs whether the module matches GOPRIVATE patterns.
+	IsPrivate bool `json:"-"`
 }
 
 type VersionsDiff [3]int64

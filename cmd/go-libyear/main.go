@@ -42,6 +42,7 @@ func main() {
 			flagJSON,
 			flagCache,
 			flagCacheFilePath,
+			flagVCSCacheDir,
 			flagTimeout,
 			flagUseGoList,
 			flagIndirect,
@@ -104,6 +105,13 @@ func run(cliCtx *cli.Context) error {
 		if cliCtx.IsSet(flag) {
 			builder = builder.WithOptions(option)
 		}
+	}
+	if goprivate := os.Getenv("GOPRIVATE"); goprivate != "" {
+		builder = builder.WithGOPRIVATE(goprivate)
+	}
+	if cliCtx.IsSet(flagVCSCacheDir.Name) {
+		registry := golibyear.NewVCSRegistry(flagVCSCacheDir.Get(cliCtx))
+		builder = builder.WithVCSRegistry(registry)
 	}
 
 	cmd, err := builder.Build()
