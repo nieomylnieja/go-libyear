@@ -31,7 +31,7 @@ LDFLAGS := "-s -w -X main.BuildVersion=$(VERSION) -X main.BuildGitTag=$(GIT_TAG)
 # renovate datasource=github-releases depName=securego/gosec
 GOSEC_VERSION := v2.18.2
 # renovate datasource=github-releases depName=golangci/golangci-lint
-GOLANGCI_LINT_VERSION := v1.55.2
+GOLANGCI_LINT_VERSION := v1.56.1
 # renovate datasource=go depName=golang.org/x/vuln/cmd/govulncheck
 GOVULNCHECK_VERSION := v1.0.3
 # renovate datasource=go depName=golang.org/x/tools/cmd/goimports
