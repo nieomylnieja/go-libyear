@@ -21,7 +21,6 @@ type CommandBuilder struct {
 	withCache     bool
 	cacheFilePath string
 	opts          Option
-	goprivate     string
 	vcsRegistry   *VCSRegistry
 }
 
@@ -45,11 +44,6 @@ func (b CommandBuilder) WithOptions(opts ...Option) CommandBuilder {
 	for _, opt := range opts {
 		b.opts |= opt
 	}
-	return b
-}
-
-func (b CommandBuilder) WithGOPRIVATE(pattern string) CommandBuilder {
-	b.goprivate = pattern
 	return b
 }
 
@@ -85,13 +79,16 @@ func (b CommandBuilder) Build() (*Command, error) {
 		cacheDir := filepath.Join(cacheBase, "vcs")
 		b.vcsRegistry = NewVCSRegistry(cacheDir)
 	}
+	// Share initialized VCSRegistry with sources.
+	if v, ok := b.source.(interface{ SetVCSRegistry(registry *VCSRegistry) }); ok {
+		v.SetVCSRegistry(b.vcsRegistry)
+	}
 	return &Command{
 		source:           b.source,
 		output:           b.output,
 		repo:             b.repo,
 		fallbackVersions: b.fallback,
 		opts:             b.opts,
-		goprivate:        b.goprivate,
 		vcs:              b.vcsRegistry,
 	}, nil
 }

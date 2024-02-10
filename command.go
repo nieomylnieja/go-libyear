@@ -15,7 +15,6 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/pkg/errors"
-	"golang.org/x/mod/module"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -50,7 +49,6 @@ type Command struct {
 	repo             ModulesRepo
 	fallbackVersions VersionsGetter
 	opts             Option
-	goprivate        string
 	vcs              *VCSRegistry
 }
 
@@ -107,8 +105,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	module.Skipped = true
 
 	// Verify if the module is private.
-	if c.isPrivate(module.Path) {
-		module.IsPrivate = true
+	if c.vcs.IsPrivate(module.Path) {
 		var err error
 		repo, err = c.vcs.GetHandler(module.Path)
 		if err != nil {
@@ -336,8 +333,4 @@ func (c Command) newErrGroup(ctx context.Context) (*errgroup.Group, context.Cont
 
 func (c Command) optionIsSet(option Option) bool {
 	return c.opts&option != 0
-}
-
-func (c Command) isPrivate(path string) bool {
-	return module.MatchPrefixPatterns(c.goprivate, path)
 }

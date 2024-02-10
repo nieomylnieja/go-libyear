@@ -3,6 +3,7 @@ package internal
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -22,6 +23,7 @@ func NewGitVCS(cacheDir string) *GitVCS {
 	}
 }
 
+// GitVCS is a module handler for git version control system.
 type GitVCS struct {
 	cacheDir   string
 	pathToRepo map[string]*gitRepo
@@ -55,6 +57,9 @@ func (g *GitVCS) CanHandle(path string) (bool, error) {
 	m := githubRegexp.FindStringSubmatch(path)
 	if m == nil {
 		return false, nil
+	}
+	if _, err := execCmd("which", "git"); err != nil {
+		return false, errors.New("git command is required")
 	}
 	var root string
 	for i, name := range githubRegexp.SubexpNames() {
@@ -93,21 +98,66 @@ func (g *GitVCS) GetVersions(path string) ([]*semver.Version, error) {
 }
 
 func (g *GitVCS) GetModFile(path string, version *semver.Version) ([]byte, error) {
-	panic("not implemented") // TODO: Implement
+	moduleNameRegexp := regexp.MustCompile(fmt.Sprintf(`(?m)^module %s$`, path))
+	repo := g.getRepoForPath(path)
+	var goMod []byte
+	if err := filepath.Walk(repo.Path, func(walkPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && info.Name() == "vendor" {
+			return filepath.SkipDir
+		}
+		if info.Name() != "go.mod" {
+			return nil
+		}
+		data, err := os.ReadFile(walkPath)
+		if err != nil {
+			return err
+		}
+		if moduleNameRegexp.Match(data) {
+			goMod = data
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	if len(goMod) == 0 {
+		return nil, errors.Errorf("no go.mod file found for %s module", path)
+	}
+	return goMod, nil
 }
 
 func (g *GitVCS) GetInfo(path string, version *semver.Version) (*Module, error) {
-	panic("not implemented") // TODO: Implement
+	repo := g.getRepoForPath(path)
+	tags, err := repo.listAllTags()
+	if err != nil {
+		return nil, err
+	}
+	for _, tag := range tags {
+		if tag.Version.String() == version.String() {
+			return &Module{
+				Path:    path,
+				Version: tag.Version,
+				Time:    tag.Date,
+			}, nil
+		}
+	}
+	return nil, errors.Errorf("%s version not found for %s path", version, path)
 }
 
 func (g *GitVCS) GetLatestInfo(path string) (*Module, error) {
 	repo := g.getRepoForPath(path)
-	latestTag, err := repo.execGitCmd("describe", "--tags", "--abbrev=0")
+	tags, err := repo.listAllTags()
 	if err != nil {
 		return nil, err
 	}
-	repo.execGitCmd("checkout", latestTag.String())
-	panic("not implemented") // TODO: Implement
+	latestTag := tags[len(tags)-1]
+	return &Module{
+		Path:    path,
+		Version: latestTag.Version,
+		Time:    latestTag.Date,
+	}, nil
 }
 
 func (g *GitVCS) getRepoForPath(path string) *gitRepo {
@@ -118,7 +168,7 @@ func (g *GitVCS) getRepoForPath(path string) *gitRepo {
 
 func (g *GitVCS) initializeRepo(repo *gitRepo) error {
 	if _, statErr := os.Stat(repo.Path); os.IsNotExist(statErr) {
-		_, err := repo.execGitCmd("clone", "--", repo.URL, repo.Path)
+		_, err := execCmd("git", "clone", "--", repo.URL, repo.Path)
 		return err
 	}
 	_, err := repo.execGitCmd("-C", repo.Path, "pull", "--ff-only")
@@ -129,7 +179,11 @@ func (g *gitRepo) listAllTags() ([]gitTag, error) {
 	if len(g.tags) > 0 {
 		return g.tags, nil
 	}
-	tagsReader, err := g.execGitCmd("for-each-ref", "--sort=authordate", "--format", "'%(authordate:short) %(refname:short)'", "refs/tags")
+	tagsReader, err := g.execGitCmd(
+		"for-each-ref",
+		"--sort=authordate",
+		"--format=%(if)%(authordate)%(then)%(authordate:short)%(else)%(taggerdate:short)%(end) %(refname:short)",
+		"refs/tags")
 	if err != nil {
 		return nil, err
 	}

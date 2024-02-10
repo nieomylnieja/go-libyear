@@ -106,9 +106,6 @@ func run(cliCtx *cli.Context) error {
 			builder = builder.WithOptions(option)
 		}
 	}
-	if goprivate := os.Getenv("GOPRIVATE"); goprivate != "" {
-		builder = builder.WithGOPRIVATE(goprivate)
-	}
 	if cliCtx.IsSet(flagVCSCacheDir.Name) {
 		registry := golibyear.NewVCSRegistry(flagVCSCacheDir.Get(cliCtx))
 		builder = builder.WithVCSRegistry(registry)

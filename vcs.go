@@ -1,10 +1,12 @@
 package libyear
 
 import (
+	"os"
 	"strings"
 
 	"github.com/nieomylnieja/go-libyear/internal"
 	"github.com/pkg/errors"
+	"golang.org/x/mod/module"
 )
 
 // VCSHandler is an interface that can be implemented by specifc VCS handler.
@@ -21,6 +23,7 @@ func NewVCSRegistry(cacheDir string) *VCSRegistry {
 		vcsHandlers: []VCSHandler{
 			internal.NewGitVCS(cacheDir),
 		},
+		goprivate: os.Getenv("GOPRIVATE"),
 	}
 }
 
@@ -28,6 +31,11 @@ func NewVCSRegistry(cacheDir string) *VCSRegistry {
 // invoked method to the registered VCS handler which supports the given path.
 type VCSRegistry struct {
 	vcsHandlers []VCSHandler
+	goprivate   string
+}
+
+func (v *VCSRegistry) IsPrivate(path string) bool {
+	return module.MatchPrefixPatterns(v.goprivate, path)
 }
 
 // GetHandler returns the VCS handler which supports the given path.
