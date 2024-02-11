@@ -28,7 +28,7 @@ func NewVCSRegistry(cacheDir string) *VCSRegistry {
 	}
 }
 
-// VCSRegistry implementes [command.ModulesRepo] and delegates handling of an
+// VCSRegistry implements [command.ModulesRepo] and delegates handling of an
 // invoked method to the registered VCS handler which supports the given path.
 type VCSRegistry struct {
 	vcsHandlers []VCSHandler
@@ -40,6 +40,7 @@ func (v *VCSRegistry) IsPrivate(path string) bool {
 }
 
 // GetHandler returns the VCS handler which supports the given path.
+// nolint: ireturn
 func (v *VCSRegistry) GetHandler(path string) (ModulesRepo, error) {
 	var handler VCSHandler
 	for _, handler = range v.vcsHandlers {

@@ -36,5 +36,7 @@ words:
   - ifeq
   - ldflags
   - procs
+  - strs
   - vuln
   - vulns
+  - wrapf

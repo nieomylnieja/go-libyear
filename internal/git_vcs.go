@@ -111,6 +111,7 @@ func (g *GitVCS) GetModFile(path string, version *semver.Version) ([]byte, error
 		if info.Name() != "go.mod" {
 			return nil
 		}
+		// #nosec G304
 		data, err := os.ReadFile(walkPath)
 		if err != nil {
 			return err
