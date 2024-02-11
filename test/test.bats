@@ -21,6 +21,7 @@ setup_file() {
 	export SERVER_HOST
 	export GOPROXY="http://$SERVER_HOST:$SERVER_PORT"
   export TEST_GO_MOD="$INPUTS/test-go.mod"
+  export TEST_PRIVATE_GO_MOD="$INPUTS/private-go.mod"
 }
 
 # teardown_file is run once for the whole file after all tests finished.
@@ -125,6 +126,34 @@ setup() {
 	assert_output_equals all_with_latest_major_versions_no_compensate
 }
 
+@test "go_proxy: go mod with goprivate" {
+  export GOPRIVATE=github.com/nieomylnieja/*
+	run go-libyear --versions --releases --indirect "$TEST_PRIVATE_GO_MOD"
+	assert_success
+	assert_output_equals all_with_private_module
+}
+
+@test "go_proxy: goprivate pkg" {
+  export GOPRIVATE=github.com/nieomylnieja/*
+	run go-libyear --versions --releases --indirect --pkg github.com/nieomylnieja/private-go-module-test
+	assert_success
+	assert_output_equals all_for_private_pkg
+}
+
+@test "go_proxy: goprivate pkg with @latest" {
+  export GOPRIVATE=github.com/nieomylnieja/*
+	run go-libyear --versions --releases --indirect --pkg github.com/nieomylnieja/private-go-module-test@latest
+	assert_success
+	assert_output_equals all_for_private_pkg_latest
+}
+
+@test "go_proxy: goprivate pkg with v0.3.0" {
+  export GOPRIVATE=github.com/nieomylnieja/*
+	run go-libyear --versions --releases --indirect --pkg github.com/nieomylnieja/private-go-module-test@v0.3.0
+	assert_success
+	assert_output_equals all_for_private_pkg_v0.3.0
+}
+
 @test "go_proxy: cache with XDG_CACHE_HOME" {
 	export XDG_CACHE_HOME="$BATS_TEST_TMPDIR"
 	run go-libyear --cache "$TEST_GO_MOD"
@@ -139,6 +168,22 @@ setup() {
 	assert_cache_contents "$CACHE_FILE_PATH"
 }
 
+@test "go_proxy: vcs cache with XDG_CACHE_HOME" {
+	export XDG_CACHE_HOME="$BATS_TEST_TMPDIR"
+  export GOPRIVATE=github.com/nieomylnieja/*
+	run go-libyear "$TEST_PRIVATE_GO_MOD"
+	assert_success
+	assert_vcs_cache_contents "$BATS_TEST_TMPDIR/go-libyear/vcs"
+}
+
+@test "go_proxy: vcs cache with custom file path" {
+	CACHE_FILE_PATH="$BATS_TEST_TMPDIR/vcs"
+  export GOPRIVATE=github.com/nieomylnieja/*
+	run go-libyear --vcs-cache-dir="$CACHE_FILE_PATH" "$TEST_PRIVATE_GO_MOD"
+	assert_success
+	assert_vcs_cache_contents "$CACHE_FILE_PATH"
+}
+
 assert_cache_contents() {
 	run cat "$1"
 	assert_success
@@ -147,6 +192,21 @@ assert_cache_contents() {
 	assert_output --partial '{"path":"github.com/BurntSushi/toml","version":"0.4.1","time":"2021-08-05T08:14:45Z"}'
 	assert_output --partial '{"path":"github.com/pkg/errors","version":"0.9.1","time":"2020-01-14T19:47:44Z"}'
 	assert_output --partial '{"path":"github.com/BurntSushi/toml","version":"1.3.2","time":"2023-06-08T06:14:45Z"}'
+}
+
+assert_vcs_cache_contents() {
+	run find "$1" -not -path '*/.git*'
+	assert_success
+	assert_output - <<EOF
+$1
+$1/github.com
+$1/github.com/nieomylnieja
+$1/github.com/nieomylnieja/private-go-module-test
+$1/github.com/nieomylnieja/private-go-module-test/test.go
+$1/github.com/nieomylnieja/private-go-module-test/README.md
+$1/github.com/nieomylnieja/private-go-module-test/go.sum
+$1/github.com/nieomylnieja/private-go-module-test/go.mod
+EOF
 }
 
 @test "error: non existent path" {
@@ -185,7 +245,7 @@ assert_cache_contents() {
 	for alias in --timeout -t; do
 		run go-libyear --timeout 1ns "$TEST_GO_MOD"
 		assert_failure
-		assert_output --partial "context deadline exceeded"
+		assert_output --partial "1ns timeout exceeded, consider increasing the timeout value via --timeout flag"
 	done
 }
 

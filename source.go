@@ -25,13 +25,6 @@ type PkgSource struct {
 func (p *PkgSource) Read() ([]byte, error) {
 	path := p.Pkg
 	repo := p.repo
-	if p.vcs.IsPrivate(path) {
-		var err error
-		repo, err = p.vcs.GetHandler(path)
-		if err != nil {
-			return nil, err
-		}
-	}
 	var version *semver.Version
 	if strings.Contains(p.Pkg, "@") {
 		split := strings.Split(path, "@")
@@ -39,12 +32,22 @@ func (p *PkgSource) Read() ([]byte, error) {
 			return nil, errors.New("invalid pkg name provided, expected version after @ char")
 		}
 		path = split[0]
+		if split[1] != "latest" {
+			var err error
+			version, err = semver.NewVersion(split[1])
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	if p.vcs.IsPrivate(path) {
 		var err error
-		version, err = semver.NewVersion(split[1])
+		repo, err = p.vcs.GetHandler(path)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	}
+	if version == nil {
 		// .mod endpoint does not support 'latest' version literal, we need an exact semver.
 		latest, err := repo.GetLatestInfo(path)
 		if err != nil {

@@ -22,7 +22,7 @@ type VCSHandler interface {
 func NewVCSRegistry(cacheDir string) *VCSRegistry {
 	return &VCSRegistry{
 		vcsHandlers: []VCSHandler{
-			internal.NewGitVCS(cacheDir),
+			internal.NewGitVCS(cacheDir, internal.GitCmd{}),
 		},
 		goprivate: os.Getenv("GOPRIVATE"),
 	}

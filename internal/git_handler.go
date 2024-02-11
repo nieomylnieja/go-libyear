@@ -2,8 +2,8 @@ package internal
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,15 +16,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewGitVCS(cacheDir string) *GitVCS {
-	return &GitVCS{
+type gitCmd interface {
+	Clone(url, path string) error
+	Pull(path string) error
+	ListTags(path string) (io.Reader, error)
+	Checkout(path, tag string) error
+	GetHeadBranchName(path string) (string, error)
+}
+
+func NewGitVCS(cacheDir string, git gitCmd) *GitHandler {
+	return &GitHandler{
+		git:        git,
 		cacheDir:   cacheDir,
 		pathToRepo: make(map[string]*gitRepo),
 	}
 }
 
-// GitVCS is a module handler for git version control system.
-type GitVCS struct {
+// GitHandler is a module handler for git version control system.
+type GitHandler struct {
+	git        gitCmd
 	cacheDir   string
 	pathToRepo map[string]*gitRepo
 	mu         sync.RWMutex
@@ -35,9 +45,9 @@ type GitVCS struct {
 // If we ever need to support concurrent access to a single gitRepo,
 // a mutex will have to guard access to tags slice.
 type gitRepo struct {
-	URL  string
-	Path string
-	tags []gitTag
+	URL     string
+	DirPath string
+	tags    []gitTag
 }
 
 type gitTag struct {
@@ -47,7 +57,7 @@ type gitTag struct {
 
 var githubRegexp = regexp.MustCompile(`^(?P<root>github\.com/[\w.\-]+/[\w.\-]+)(/[\w.\-]+)*$`)
 
-func (g *GitVCS) CanHandle(path string) (bool, error) {
+func (g *GitHandler) CanHandle(path string) (bool, error) {
 	g.mu.RLock()
 	_, ok := g.pathToRepo[path]
 	g.mu.RUnlock()
@@ -70,23 +80,23 @@ func (g *GitVCS) CanHandle(path string) (bool, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	repo := &gitRepo{
-		URL:  "https://" + root + ".git",
-		Path: filepath.Join(g.cacheDir, path),
+		URL:     "https://" + root + ".git",
+		DirPath: filepath.Join(g.cacheDir, path),
 	}
-	if err := g.initializeRepo(repo); err != nil {
+	if err := g.initializeRepo(path, repo); err != nil {
 		return false, err
 	}
 	g.pathToRepo[path] = repo
 	return true, nil
 }
 
-func (g *GitVCS) Name() string {
+func (g *GitHandler) Name() string {
 	return "git"
 }
 
-func (g *GitVCS) GetVersions(path string) ([]*semver.Version, error) {
+func (g *GitHandler) GetVersions(path string) ([]*semver.Version, error) {
 	repo := g.getRepoForPath(path)
-	tags, err := repo.listAllTags()
+	tags, err := g.listAllTags(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -97,11 +107,14 @@ func (g *GitVCS) GetVersions(path string) ([]*semver.Version, error) {
 	return versions, nil
 }
 
-func (g *GitVCS) GetModFile(path string, version *semver.Version) ([]byte, error) {
+func (g *GitHandler) GetModFile(path string, version *semver.Version) ([]byte, error) {
 	moduleNameRegexp := regexp.MustCompile(fmt.Sprintf(`(?m)^module %s$`, path))
 	repo := g.getRepoForPath(path)
+	if err := g.git.Checkout(repo.DirPath, version.Original()); err != nil {
+		return nil, errors.Wrapf(err, "failed to checkout version %s of %s", version.Original(), path)
+	}
 	var goMod []byte
-	if err := filepath.Walk(repo.Path, func(walkPath string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(repo.DirPath, func(walkPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -129,9 +142,9 @@ func (g *GitVCS) GetModFile(path string, version *semver.Version) ([]byte, error
 	return goMod, nil
 }
 
-func (g *GitVCS) GetInfo(path string, version *semver.Version) (*Module, error) {
+func (g *GitHandler) GetInfo(path string, version *semver.Version) (*Module, error) {
 	repo := g.getRepoForPath(path)
-	tags, err := repo.listAllTags()
+	tags, err := g.listAllTags(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -147,9 +160,9 @@ func (g *GitVCS) GetInfo(path string, version *semver.Version) (*Module, error) 
 	return nil, errors.Errorf("%s version not found for %s path", version, path)
 }
 
-func (g *GitVCS) GetLatestInfo(path string) (*Module, error) {
+func (g *GitHandler) GetLatestInfo(path string) (*Module, error) {
 	repo := g.getRepoForPath(path)
-	tags, err := repo.listAllTags()
+	tags, err := g.listAllTags(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -161,30 +174,31 @@ func (g *GitVCS) GetLatestInfo(path string) (*Module, error) {
 	}, nil
 }
 
-func (g *GitVCS) getRepoForPath(path string) *gitRepo {
+func (g *GitHandler) getRepoForPath(path string) *gitRepo {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return g.pathToRepo[path]
 }
 
-func (g *GitVCS) initializeRepo(repo *gitRepo) error {
-	if _, statErr := os.Stat(repo.Path); os.IsNotExist(statErr) {
-		_, err := execCmd("git", "clone", "--", repo.URL, repo.Path)
+func (g *GitHandler) initializeRepo(path string, repo *gitRepo) error {
+	if _, statErr := os.Stat(repo.DirPath); os.IsNotExist(statErr) {
+		return g.git.Clone(repo.URL, repo.DirPath)
+	}
+	headBranchName, err := g.git.GetHeadBranchName(repo.DirPath)
+	if err != nil {
 		return err
 	}
-	_, err := repo.execGitCmd("-C", repo.Path, "pull", "--ff-only")
-	return err
+	if err := g.git.Checkout(repo.DirPath, headBranchName); err != nil {
+		return errors.Wrapf(err, "failed to checkout version %s of %s", headBranchName, path)
+	}
+	return g.git.Pull(repo.DirPath)
 }
 
-func (g *gitRepo) listAllTags() ([]gitTag, error) {
-	if len(g.tags) > 0 {
-		return g.tags, nil
+func (g *GitHandler) listAllTags(repo *gitRepo) ([]gitTag, error) {
+	if len(repo.tags) > 0 {
+		return repo.tags, nil
 	}
-	tagsReader, err := g.execGitCmd(
-		"for-each-ref",
-		"--sort=authordate",
-		"--format=%(if)%(authordate)%(then)%(authordate:short)%(else)%(taggerdate:short)%(end) %(refname:short)",
-		"refs/tags")
+	tagsReader, err := g.git.ListTags(repo.DirPath)
 	if err != nil {
 		return nil, err
 	}
@@ -213,10 +227,6 @@ func (g *gitRepo) listAllTags() ([]gitTag, error) {
 		return nil, err
 	}
 	sort.Slice(tags, func(i, j int) bool { return tags[i].Version.LessThan(tags[j].Version) })
-	g.tags = tags
+	repo.tags = tags
 	return tags, nil
-}
-
-func (g *gitRepo) execGitCmd(args ...string) (*bytes.Buffer, error) {
-	return execCmd("git", append([]string{"-C", g.Path}, args...)...)
 }

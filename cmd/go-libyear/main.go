@@ -120,17 +120,25 @@ func run(cliCtx *cli.Context) error {
 
 func setupContextHandling(cliCtx *cli.Context) (ctx context.Context, handler func()) {
 	ctx = cliCtx.Context
-	ctx, cancel := context.WithTimeout(ctx, flagTimeout.Get(cliCtx))
+	errTimeout := errors.New("timeout")
+	timeout := flagTimeout.Get(cliCtx)
+	ctx, cancel := context.WithTimeoutCause(ctx, timeout, errTimeout)
 	sigCh := make(chan os.Signal, 2)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	return ctx, func() {
 		select {
 		case sig := <-sigCh:
 			cancel()
-			fmt.Printf("\r%s signal detected, shutting down...\n", sig)
+			fmt.Fprintf(os.Stderr, "\r%s signal detected, shutting down...\n", sig)
 			os.Exit(0)
 		case <-ctx.Done():
-			fmt.Printf("\r%s, shutting down...\n", ctx.Err())
+			cause := context.Cause(ctx)
+			if errors.Is(cause, errTimeout) {
+				fmt.Fprintf(os.Stderr,
+					"\r%s timeout exceeded, consider increasing the timeout value via --timeout flag\n", timeout)
+			} else {
+				fmt.Fprintf(os.Stderr, "\r%s, shutting down...\n", ctx.Err())
+			}
 			os.Exit(1)
 		}
 	}
