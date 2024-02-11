@@ -4,9 +4,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nieomylnieja/go-libyear/internal"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/module"
+
+	"github.com/nieomylnieja/go-libyear/internal"
 )
 
 // VCSHandler is an interface that can be implemented by specifc VCS handler.
