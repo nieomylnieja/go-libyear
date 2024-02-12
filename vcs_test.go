@@ -1,5 +1,4 @@
 package libyear
 
 func TestVCSGetHandler() {
-
 }

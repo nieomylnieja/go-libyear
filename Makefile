@@ -129,7 +129,7 @@ format/go:
 	echo "Formatting Go files..."
 	gofumpt -l -w -extra .
 	goimports -local=$$(head -1 go.mod | awk '{print $$2}') -w .
-	golines --ignore-generated --reformat-tags -w .
+	golines -m 120 --ignore-generated --reformat-tags -w .
 
 ## Format cspell config file.
 format/cspell:
