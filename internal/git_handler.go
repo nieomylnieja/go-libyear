@@ -16,7 +16,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-type gitCmd interface {
+//go:generate mockgen -destination mocks/git.go -package mocks -typed . GitCmdI
+
+type GitCmdI interface {
 	Clone(url, path string) error
 	Pull(path string) error
 	ListTags(path string) (io.Reader, error)
@@ -24,7 +26,7 @@ type gitCmd interface {
 	GetHeadBranchName(path string) (string, error)
 }
 
-func NewGitVCS(cacheDir string, git gitCmd) *GitHandler {
+func NewGitVCS(cacheDir string, git GitCmdI) *GitHandler {
 	return &GitHandler{
 		git:        git,
 		cacheDir:   cacheDir,
@@ -34,7 +36,7 @@ func NewGitVCS(cacheDir string, git gitCmd) *GitHandler {
 
 // GitHandler is a module handler for git version control system.
 type GitHandler struct {
-	git        gitCmd
+	git        GitCmdI
 	cacheDir   string
 	pathToRepo map[string]*gitRepo
 	mu         sync.RWMutex
@@ -67,9 +69,6 @@ func (g *GitHandler) CanHandle(path string) (bool, error) {
 	m := githubRegexp.FindStringSubmatch(path)
 	if m == nil {
 		return false, nil
-	}
-	if _, err := execCmd("which", "git"); err != nil {
-		return false, errors.New("git command is required")
 	}
 	var root string
 	for i, name := range githubRegexp.SubexpNames() {

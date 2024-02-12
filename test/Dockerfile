@@ -14,3 +14,6 @@ RUN apk --no-cache --update add gettext git
 COPY ./test ./test
 COPY --from=go-libyear-test-bin ./go-libyear /bin/go-libyear
 COPY --from=builder /artifacts/test_server /bin/test_server
+
+# Required for bats pretty printing.
+ENV TERM=linux

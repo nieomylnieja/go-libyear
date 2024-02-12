@@ -15,10 +15,9 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-      - name: Setup Golang
-        uses: actions/setup-go@v5
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.7.0
         with:
-          go-version-file: go.mod
-          check-latest: true
+          enable-cache: true
       - name: Run Golang Vulncheck
-        run: make check/vulns
+        run: devbox run -- make check/vulns

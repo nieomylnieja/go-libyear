@@ -30,7 +30,7 @@ const (
 	OptionNoLibyearCompensation                    // 32
 )
 
-//go:generate mockgen -destination internal/mocks/mocks.go -package mocks -typed . ModulesRepo,VersionsGetter
+//go:generate mockgen -destination internal/mocks/command.go -package mocks -typed . ModulesRepo,VersionsGetter
 
 type ModulesRepo interface {
 	VersionsGetter

@@ -1,0 +1,5 @@
+package libyear
+
+func TestVCSGetHandler() {
+
+}
