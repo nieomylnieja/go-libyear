@@ -60,10 +60,7 @@ type gitTag struct {
 var githubRegexp = regexp.MustCompile(`^(?P<root>github\.com/[\w.\-]+/[\w.\-]+)(/[\w.\-]+)*$`)
 
 func (g *GitHandler) CanHandle(path string) (bool, error) {
-	g.mu.RLock()
-	_, ok := g.pathToRepo[path]
-	g.mu.RUnlock()
-	if ok {
+	if g.getRepoForPath(path) != nil {
 		return true, nil
 	}
 	m := githubRegexp.FindStringSubmatch(path)
