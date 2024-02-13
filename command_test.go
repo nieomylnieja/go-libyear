@@ -499,7 +499,10 @@ func TestCommand_GetVersions(t *testing.T) {
 						Times(0)
 				}
 			}
-			cmd := Command{fallbackVersions: versionsGetter}
+			cmd := Command{
+				fallbackVersions: versionsGetter,
+				vcs:              &VCSRegistry{},
+			}
 			versions, err := cmd.getAllVersions(modulesRepo, test.Latest)
 
 			require.NoError(t, err)
@@ -551,6 +554,7 @@ func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable(t *testing.T) {
 	cmd := Command{
 		repo: modulesRepo,
 		opts: OptionFindLatestMajor,
+		vcs:  &VCSRegistry{},
 	}
 
 	module := currentLatest
@@ -587,6 +591,7 @@ func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable_NoCompensate(t *testin
 	cmd := Command{
 		repo: modulesRepo,
 		opts: OptionFindLatestMajor | OptionNoLibyearCompensation,
+		vcs:  &VCSRegistry{},
 	}
 
 	module := currentLatest
