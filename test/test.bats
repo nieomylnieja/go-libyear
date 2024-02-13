@@ -185,13 +185,19 @@ setup() {
 }
 
 assert_cache_contents() {
-	run cat "$1"
+	run sort "$1"
 	assert_success
-	assert_output --partial '{"path":"golang.org/x/sync","version":"0.5.0","time":"2023-10-11T14:04:17Z"}'
-	assert_output --partial '{"path":"github.com/pkg/errors","version":"0.8.0","time":"2016-09-29T01:48:01Z"}'
-	assert_output --partial '{"path":"github.com/BurntSushi/toml","version":"0.4.1","time":"2021-08-05T08:14:45Z"}'
-	assert_output --partial '{"path":"github.com/pkg/errors","version":"0.9.1","time":"2020-01-14T19:47:44Z"}'
-	assert_output --partial '{"path":"github.com/BurntSushi/toml","version":"1.3.2","time":"2023-06-08T06:14:45Z"}'
+	assert_output - <<EOF
+{"path":"github.com/BurntSushi/toml","version":"0.4.1","time":"2021-08-05T08:14:45Z"}
+{"path":"github.com/BurntSushi/toml","version":"1.3.2","time":"2023-06-08T06:14:45Z"}
+{"path":"github.com/go-playground/validator","version":"8.18.2+incompatible","time":"2017-07-30T05:02:35Z"}
+{"path":"github.com/go-playground/validator","version":"9.31.0+incompatible","time":"2019-12-25T05:24:06Z"}
+{"path":"github.com/lestrrat-go/jwx","version":"1.2.28","time":"2024-01-09T01:52:35Z"}
+{"path":"github.com/pkg/errors","version":"0.8.0","time":"2016-09-29T01:48:01Z"}
+{"path":"github.com/pkg/errors","version":"0.9.1","time":"2020-01-14T19:47:44Z"}
+{"path":"golang.org/x/sync","version":"0.5.0","time":"2023-10-11T14:04:17Z"}
+{"path":"golang.org/x/sync","version":"0.6.0","time":"2023-12-07T16:58:19Z"}
+EOF
 }
 
 assert_vcs_cache_contents() {
