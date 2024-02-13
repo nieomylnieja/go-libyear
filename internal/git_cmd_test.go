@@ -22,7 +22,7 @@ func TestGetHeadBranchName(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		branch, err := getHeadBranchName(bytes.NewBuffer([]byte(test.Input)))
+		branch, err := getHeadBranchName(bytes.NewBufferString(test.Input))
 		require.NoError(t, err)
 		assert.Equal(t, test.Branch, branch)
 	}
