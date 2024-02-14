@@ -30,7 +30,7 @@ const (
 	OptionNoLibyearCompensation                    // 32
 )
 
-//go:generate mockgen -destination internal/mocks/mocks.go -package mocks -typed . ModulesRepo,VersionsGetter
+//go:generate mockgen -destination internal/mocks/command.go -package mocks -typed . ModulesRepo,VersionsGetter
 
 type ModulesRepo interface {
 	VersionsGetter
@@ -49,6 +49,7 @@ type Command struct {
 	repo             ModulesRepo
 	fallbackVersions VersionsGetter
 	opts             Option
+	vcs              *VCSRegistry
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -99,11 +100,21 @@ func (c Command) Run(ctx context.Context) error {
 const secondsInYear = float64(365 * 24 * 60 * 60)
 
 func (c Command) runForModule(module *internal.Module) error {
+	repo := c.repo
 	// We skip this module, unless we get to the end and manage to calculate libyear.
 	module.Skipped = true
 
+	// Verify if the module is private.
+	if c.vcs.IsPrivate(module.Path) {
+		var err error
+		repo, err = c.vcs.GetHandler(module.Path)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Fetch latest.
-	latest, err := c.getLatestInfo(module.Path)
+	latest, err := c.getLatestInfo(repo, module.Path)
 	if err != nil {
 		return err
 	}
@@ -117,7 +128,7 @@ func (c Command) runForModule(module *internal.Module) error {
 
 	// Since we're parsing the go.mod file directly, we might need to fetch the Module.Time.
 	if module.Time.IsZero() {
-		fetchedModule, err := c.repo.GetInfo(module.Path, module.Version)
+		fetchedModule, err := repo.GetInfo(module.Path, module.Version)
 		if err != nil {
 			return err
 		}
@@ -128,7 +139,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	if c.optionIsSet(OptionFindLatestMajor) &&
 		!c.optionIsSet(OptionNoLibyearCompensation) &&
 		module.Path != latest.Path {
-		first, err := c.findFirstModule(latest.Path)
+		first, err := c.findFirstModule(repo, latest.Path)
 		if err != nil {
 			return err
 		}
@@ -143,7 +154,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	// The following calculations are based on https://ericbouwers.github.io/papers/icse15.pdf.
 	module.Libyear = calculateLibyear(currentTime, latest.Time)
 	if c.optionIsSet(OptionShowReleases) {
-		versions, err := c.getAllVersions(latest)
+		versions, err := c.getAllVersions(repo, latest)
 		if err == errNoVersions {
 			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
@@ -160,10 +171,10 @@ func (c Command) runForModule(module *internal.Module) error {
 
 var errNoVersions = errors.New("no versions found")
 
-func (c Command) getAllVersions(latest *internal.Module) ([]*semver.Version, error) {
+func (c Command) getAllVersions(repo ModulesRepo, latest *internal.Module) ([]*semver.Version, error) {
 	allVersions := make([]*semver.Version, 0)
 	for _, path := range latest.AllPaths {
-		versions, err := c.getVersionsForPath(path, latest.Version.Prerelease() != "")
+		versions, err := c.getVersionsForPath(repo, path, latest.Version.Prerelease() != "")
 		if err != nil {
 			return nil, err
 		}
@@ -173,8 +184,8 @@ func (c Command) getAllVersions(latest *internal.Module) ([]*semver.Version, err
 	return allVersions, nil
 }
 
-func (c Command) getVersionsForPath(path string, isPrerelease bool) ([]*semver.Version, error) {
-	versions, err := c.repo.GetVersions(path)
+func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease bool) ([]*semver.Version, error) {
+	versions, err := repo.GetVersions(path)
 	if err != nil {
 		return nil, err
 	}
@@ -198,11 +209,11 @@ func (c Command) getVersionsForPath(path string, isPrerelease bool) ([]*semver.V
 	return versions, nil
 }
 
-func (c Command) getLatestInfo(path string) (*internal.Module, error) {
+func (c Command) getLatestInfo(repo ModulesRepo, path string) (*internal.Module, error) {
 	var paths []string
 	var latest *internal.Module
 	for {
-		lts, err := c.repo.GetLatestInfo(path)
+		lts, err := repo.GetLatestInfo(path)
 		if err != nil {
 			if strings.Contains(err.Error(), "no matching versions") {
 				break
@@ -237,8 +248,8 @@ func (c Command) getLatestInfo(path string) (*internal.Module, error) {
 
 // findFirstModule finds the first module in the given path.
 // If the path has /v2 or higher suffix it will find the first module in this version.
-func (c Command) findFirstModule(path string) (*internal.Module, error) {
-	versions, err := c.repo.GetVersions(path)
+func (c Command) findFirstModule(repo ModulesRepo, path string) (*internal.Module, error) {
+	versions, err := repo.GetVersions(path)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +257,7 @@ func (c Command) findFirstModule(path string) (*internal.Module, error) {
 		return nil, errors.Errorf("no versions found for path %s, expected at least one", path)
 	}
 	sort.Sort(semver.Collection(versions))
-	return c.repo.GetInfo(path, versions[0])
+	return repo.GetInfo(path, versions[0])
 }
 
 func updatePathVersion(path string, currentMajor, newMajor int64) string {

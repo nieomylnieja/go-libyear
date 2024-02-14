@@ -27,14 +27,20 @@ ignorePaths:
 words:
   - endef
   - gobin
+  - gofumpt
   - goimports
   - golangci
   - golibyear
+  - golines
   - gomock
+  - goroot
   - gosec
+  - gotools
   - govulncheck
   - ifeq
   - ldflags
   - procs
+  - strs
   - vuln
   - vulns
+  - wrapf

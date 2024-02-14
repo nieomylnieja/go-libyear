@@ -1,0 +1,19 @@
+{
+  "packages": [
+    "mockgen@latest",
+    "yarn@latest",
+    "golines@latest",
+    "govulncheck@latest",
+    "gofumpt@latest",
+    "golangci-lint@latest",
+    "gosec@latest",
+    "go@1.22",
+    "gotools@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "export \"GOROOT=$(go env GOROOT)\"",
+      "make install/yarn"
+    ]
+  }
+}
