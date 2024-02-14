@@ -201,17 +201,17 @@ EOF
 }
 
 assert_vcs_cache_contents() {
-	run find "$1" -not -path '*/.git*'
+	run bash -c "find $1 -not -path '*/.git*' | sort"
 	assert_success
 	assert_output - <<EOF
 $1
 $1/github.com
 $1/github.com/nieomylnieja
 $1/github.com/nieomylnieja/private-go-module-test
-$1/github.com/nieomylnieja/private-go-module-test/test.go
 $1/github.com/nieomylnieja/private-go-module-test/README.md
-$1/github.com/nieomylnieja/private-go-module-test/go.sum
 $1/github.com/nieomylnieja/private-go-module-test/go.mod
+$1/github.com/nieomylnieja/private-go-module-test/go.sum
+$1/github.com/nieomylnieja/private-go-module-test/test.go
 EOF
 }
 
