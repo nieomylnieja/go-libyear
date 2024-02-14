@@ -136,10 +136,11 @@ Example:
 It is disabled by default but can be enabled and adjusted with the following
 flags:
 
-| Flag                | Explanation                         |
-|---------------------|-------------------------------------|
-| `--cache`           | Enable caching.                     |
-| `--cache-file-path` | Use the specified file fro caching. |
+| Flag                | Explanation                            |
+|---------------------|----------------------------------------|
+| `--cache`           | Enable caching.                        |
+| `--cache-file-path` | Use the specified file for caching.    |
+| `--vcs-cache-dir`   | Use custom cache path for VCS modules. |
 
 ## Go versioning
 
@@ -185,13 +186,9 @@ The aforementioned flag also works with such scenarios.
 
 ### Accessing private repositories
 
-Currently the default mode of execution does not support GOPRIVATE environment
-variable.
-This means private modules' information won't be accessible to the program. To
-access
-private modules use `--go-list` flag. It will instruct the program to
-utilize `go list`
-command instead of GOPROXY API.
+Currently the default mode of execution only supports git VCS and GitHub source.
+To access all private modules use `--go-list` flag.
+It will instruct the program to utilize `go list` command instead of GOPROXY API.
 
 ### Using `--go-list` flag
 
