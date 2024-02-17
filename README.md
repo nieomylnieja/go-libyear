@@ -49,7 +49,7 @@ Quoting and paraphrasing [libyear.com](https://libyear.com/):
 > Libyear is a simple measure of software **dependency freshness**. \
 > It is a single number telling you how **up-to-date** your dependencies
 > are. \
-> Example: pkg/errors _v0.8.1_ (January 2019) is **1 libyear** behind _v0.9.0_
+> Example: pkg/errors _v0.8.1_ (June 2019) is **1 libyear** behind _v0.9.0_
 > (June 2020).
 
 Libyear is the default metric calculated by the program.

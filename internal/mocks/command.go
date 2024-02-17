@@ -13,9 +13,8 @@ import (
 	reflect "reflect"
 
 	semver "github.com/Masterminds/semver"
-	gomock "go.uber.org/mock/gomock"
-
 	internal "github.com/nieomylnieja/go-libyear/internal"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockModulesRepo is a mock of ModulesRepo interface.

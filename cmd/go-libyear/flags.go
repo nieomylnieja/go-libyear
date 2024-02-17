@@ -103,6 +103,11 @@ var (
 		Aliases: []string{"M"},
 		Usage:   "Use next, greater than or equal to v2 version as the latest",
 	}
+	flagBefore = &cli.TimestampFlag{
+		Name:   "before",
+		Layout: time.RFC3339,
+		Usage:  "Only consider versions which were published before the specified date",
+	}
 	flagNoLibyearCompensation = &cli.BoolFlag{
 		Name: "no-libyear-compensation",
 		Usage: "Do not compensate for negative or zero libyear " +

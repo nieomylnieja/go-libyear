@@ -50,6 +50,7 @@ type Command struct {
 	fallbackVersions VersionsGetter
 	opts             Option
 	vcs              *VCSRegistry
+	before           time.Time
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -114,7 +115,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	}
 
 	// Fetch latest.
-	latest, err := c.getLatestInfo(repo, module.Path)
+	latest, err := c.getLatestInfo(module, repo)
 	if err != nil {
 		return err
 	}
@@ -209,11 +210,27 @@ func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease 
 	return versions, nil
 }
 
-func (c Command) getLatestInfo(repo ModulesRepo, path string) (*internal.Module, error) {
-	var paths []string
-	var latest *internal.Module
+func (c Command) getLatestInfo(current *internal.Module, repo ModulesRepo) (*internal.Module, error) {
+	var (
+		path   = current.Path
+		paths  []string
+		latest *internal.Module
+	)
 	for {
-		lts, err := repo.GetLatestInfo(path)
+		var (
+			lts *internal.Module
+			err error
+		)
+		if c.before.IsZero() {
+			lts, err = repo.GetLatestInfo(path)
+		} else {
+			// If this is the first iteration, optimize findLatestBefore by passing it the current version module.
+			if latest == nil {
+				lts, err = c.findLatestBefore(path, current)
+			} else {
+				lts, err = c.findLatestBefore(path, nil)
+			}
+		}
 		if err != nil {
 			if strings.Contains(err.Error(), "no matching versions") {
 				break
@@ -333,4 +350,51 @@ func (c Command) newErrGroup(ctx context.Context) (*errgroup.Group, context.Cont
 
 func (c Command) optionIsSet(option Option) bool {
 	return c.opts&option != 0
+}
+
+var errNoMatchingVersions = errors.New("no matching versions")
+
+// findLatestBefore uses binary search to find the latest module published before the given time.
+// It is highly recommended to use cache when calling this function.
+// current argument is optional, if it is provided, the function optimizes its search by skipping
+// every version preceeding current version.
+func (c Command) findLatestBefore(path string, current *internal.Module) (*internal.Module, error) {
+	if current != nil && c.before.Before(current.Time) {
+		return nil, errors.Errorf("current module release time: %s is after the before flag value: %s",
+			current.Time.Format(time.DateOnly), c.before.Format(time.DateOnly))
+	}
+	versions, err := c.repo.GetVersions(path)
+	if err != nil {
+		return nil, err
+	}
+	sort.Sort(semver.Collection(versions))
+	// Optimize the search if current was provided.
+	if current != nil {
+		currentIndex := slices.IndexFunc(versions, func(v *semver.Version) bool { return current.Version.Equal(v) })
+		versions = versions[currentIndex+1:]
+	}
+	start, end := 0, (len(versions) - 1)
+	latest := current
+	for start <= end {
+		mid := (start + end) / 2
+		lts, err := c.repo.GetInfo(path, versions[mid])
+		if err != nil {
+			return nil, err
+		}
+		if lts.Time.After(c.before) {
+			// Investigate the lower half of the range.
+			end = mid - 1
+		} else {
+			// Investigate the upper half of the range.
+			// If the potential latest (lts) is after current latest candidate, update latest.
+			if latest == nil || lts.Time.After(latest.Time) {
+				latest = lts
+			}
+			start = mid + 1
+		}
+	}
+	if latest == nil {
+		return nil, errNoMatchingVersions
+	}
+	return latest, nil
 }
