@@ -49,7 +49,7 @@ Quoting and paraphrasing [libyear.com](https://libyear.com/):
 > Libyear is a simple measure of software **dependency freshness**. \
 > It is a single number telling you how **up-to-date** your dependencies
 > are. \
-> Example: pkg/errors _v0.8.1_ (January 2019) is **1 libyear** behind _v0.9.0_
+> Example: pkg/errors _v0.8.1_ (June 2019) is **1 libyear** behind _v0.9.0_
 > (June 2020).
 
 Libyear is the default metric calculated by the program.
@@ -129,6 +129,22 @@ Example:
 | Table  | _default_ |
 | JSON   | `--json`  |
 | CSV    | `--csv`   |
+
+### Historical data
+
+In order to calculate the metrics in a given point in time,
+use `--age-limit` flag.
+Example:
+
+```sh
+go-libyear --age-limit 2022-10-01T12:00:00Z ./go.mod
+```
+
+The latest version for each package will be appointed as the latest version
+of the package before or at the provided timestamp.
+
+The flag works any other flag. If using a script to extract a history
+of the calculated metrics, it is recommended to use `--cache` flag as well.
 
 ### Caching
 

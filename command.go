@@ -50,6 +50,7 @@ type Command struct {
 	fallbackVersions VersionsGetter
 	opts             Option
 	vcs              *VCSRegistry
+	ageLimit         time.Time
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -113,8 +114,17 @@ func (c Command) runForModule(module *internal.Module) error {
 		}
 	}
 
+	// Since we're parsing the go.mod file directly, we might need to fetch the Module.Time.
+	if module.Time.IsZero() {
+		fetchedModule, err := repo.GetInfo(module.Path, module.Version)
+		if err != nil {
+			return err
+		}
+		module.Time = fetchedModule.Time
+	}
+
 	// Fetch latest.
-	latest, err := c.getLatestInfo(repo, module.Path)
+	latest, err := c.getLatestInfo(module, repo)
 	if err != nil {
 		return err
 	}
@@ -125,15 +135,6 @@ func (c Command) runForModule(module *internal.Module) error {
 		return nil
 	}
 	module.Latest = latest
-
-	// Since we're parsing the go.mod file directly, we might need to fetch the Module.Time.
-	if module.Time.IsZero() {
-		fetchedModule, err := repo.GetInfo(module.Path, module.Version)
-		if err != nil {
-			return err
-		}
-		module.Time = fetchedModule.Time
-	}
 
 	currentTime := module.Time
 	if c.optionIsSet(OptionFindLatestMajor) &&
@@ -195,10 +196,15 @@ func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease 
 	if !isPrerelease {
 		return nil, errNoVersions
 	}
+	fallback := c.fallbackVersions
+	// Alternative is the fallback as na argument to the function, which makes it even more messy.
+	if _, ok := repo.(VCSHandler); ok {
+		fallback = repo
+	}
 	// Try fetching the versions from deps.dev.
 	// Go list does not list prerelease versions, which is fine,
 	// unless we're dealing with a prerelease version ourselves.
-	versions, err = c.fallbackVersions.GetVersions(path)
+	versions, err = fallback.GetVersions(path)
 	if err != nil {
 		return nil, err
 	}
@@ -209,11 +215,27 @@ func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease 
 	return versions, nil
 }
 
-func (c Command) getLatestInfo(repo ModulesRepo, path string) (*internal.Module, error) {
-	var paths []string
-	var latest *internal.Module
+func (c Command) getLatestInfo(current *internal.Module, repo ModulesRepo) (*internal.Module, error) {
+	var (
+		path   = current.Path
+		paths  []string
+		latest *internal.Module
+	)
 	for {
-		lts, err := repo.GetLatestInfo(path)
+		var (
+			lts *internal.Module
+			err error
+		)
+		if c.ageLimit.IsZero() {
+			lts, err = repo.GetLatestInfo(path)
+		} else {
+			// If this is the first iteration, optimize findLatestBefore by passing it the current version module.
+			if latest == nil {
+				lts, err = c.findLatestBefore(repo, path, current)
+			} else {
+				lts, err = c.findLatestBefore(repo, path, nil)
+			}
+		}
 		if err != nil {
 			if strings.Contains(err.Error(), "no matching versions") {
 				break
@@ -333,4 +355,53 @@ func (c Command) newErrGroup(ctx context.Context) (*errgroup.Group, context.Cont
 
 func (c Command) optionIsSet(option Option) bool {
 	return c.opts&option != 0
+}
+
+var errNoMatchingVersions = errors.New("no matching versions")
+
+// findLatestBefore uses binary search to find the latest module published before the given time.
+// It is highly recommended to use cache when calling this function.
+// current argument is optional, if it is provided, the function optimizes its search by skipping
+// every version preceding current version.
+func (c Command) findLatestBefore(repo ModulesRepo, path string, current *internal.Module) (*internal.Module, error) {
+	if current != nil && c.ageLimit.Before(current.Time) {
+		return nil, errors.Errorf("current module release time: %s is after the before flag value: %s",
+			current.Time.Format(time.DateOnly), c.ageLimit.Format(time.DateOnly))
+	}
+	// Make sure we handle prerelease versions as well.
+	isPrerelease := current != nil && current.Version.Prerelease() != ""
+	versions, err := c.getVersionsForPath(repo, path, isPrerelease)
+	if err != nil {
+		return nil, err
+	}
+	sort.Sort(semver.Collection(versions))
+	// Optimize the search if current was provided.
+	if current != nil {
+		currentIndex := slices.IndexFunc(versions, func(v *semver.Version) bool { return current.Version.Equal(v) })
+		versions = versions[currentIndex+1:]
+	}
+	start, end := 0, (len(versions) - 1)
+	latest := current
+	for start <= end {
+		mid := (start + end) / 2
+		lts, err := repo.GetInfo(path, versions[mid])
+		if err != nil {
+			return nil, err
+		}
+		if lts.Time.After(c.ageLimit) {
+			// Investigate the lower half of the range.
+			end = mid - 1
+		} else {
+			// Investigate the upper half of the range.
+			// If the potential latest (lts) is after current latest candidate, update latest.
+			if latest == nil || lts.Time.After(latest.Time) {
+				latest = lts
+			}
+			start = mid + 1
+		}
+	}
+	if latest == nil {
+		return nil, errNoMatchingVersions
+	}
+	return latest, nil
 }

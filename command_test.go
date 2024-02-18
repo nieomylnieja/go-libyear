@@ -348,7 +348,9 @@ func TestCommand_GetLatestInfo(t *testing.T) {
 					Return(call.OutputModule, call.OutputError)
 			}
 			cmd := Command{opts: test.Options}
-			latest, err := cmd.getLatestInfo(modulesRepo, test.Input)
+			latest, err := cmd.getLatestInfo(
+				&internal.Module{Path: test.Input},
+				modulesRepo)
 
 			require.NoError(t, err)
 			assert.Equal(t, test.ExpectedLatest, latest.Version)
@@ -599,6 +601,371 @@ func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable_NoCompensate(t *testin
 
 	require.NoError(t, err)
 	assert.Zero(t, module.Libyear)
+}
+
+func TestCommand_FindLatestBefore_CheckCurrentTime(t *testing.T) {
+	cmd := Command{ageLimit: mustParseTime(t, "2023-01-12")}
+
+	_, err := cmd.findLatestBefore(nil, "", &internal.Module{Time: mustParseTime(t, "2023-01-13")})
+	require.EqualError(t, err, "current module release time: 2023-01-13 is after the before flag value: 2023-01-12")
+}
+
+func TestCommand_FindLatestBefore_NoMatchingVersions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	path := "github.com/nieomylnieja/go-libyear"
+
+	modulesRepo := mocks.NewMockModulesRepo(ctrl)
+	modulesRepo.EXPECT().
+		GetVersions(path).
+		Times(1).
+		Return([]*semver.Version{semver.MustParse("v1.0.0")}, nil)
+	modulesRepo.EXPECT().
+		GetInfo(path, semver.MustParse("v1.0.0")).
+		Times(1).
+		Return(&internal.Module{Time: mustParseTime(t, "2023-01-14")}, nil)
+	cmd := Command{ageLimit: mustParseTime(t, "2023-01-13")}
+
+	_, err := cmd.findLatestBefore(modulesRepo, path, nil)
+	require.ErrorIs(t, err, errNoMatchingVersions)
+}
+
+func TestCommand_FindLatestBefore(t *testing.T) {
+	tests := map[string]struct {
+		Before           time.Time
+		Current          *internal.Module
+		Expected         *internal.Module
+		Versions         []*semver.Version
+		FallbackVersions []*semver.Version
+		GetInfoResponses []*internal.Module
+	}{
+		"current supplied, no new versions": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Versions: []*semver.Version{semver.MustParse("v1.0.0")},
+		},
+		"current supplied, single version, choose current": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v0.9.0"),
+			},
+		},
+		"current supplied, single version, choose latest before": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-02"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.1.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.1.0"),
+					Time:    mustParseTime(t, "2023-01-05"),
+				},
+			},
+		},
+		"current supplied, many versions, choose latest before, var 1": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v1.1.0"),
+				Time:    mustParseTime(t, "2023-01-02"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.4.0"),
+				Time:    mustParseTime(t, "2023-01-07"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+				semver.MustParse("v1.2.0"),
+				semver.MustParse("v1.3.0"),
+				semver.MustParse("v1.4.0"),
+				semver.MustParse("v1.5.0"),
+				semver.MustParse("v1.6.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.4.0"),
+					Time:    mustParseTime(t, "2023-01-07"),
+				},
+				{
+					Version: semver.MustParse("v1.5.0"),
+					Time:    mustParseTime(t, "2023-01-09"),
+				},
+			},
+		},
+		"current supplied, many versions, choose latest before, var 2": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v1.1.0"),
+				Time:    mustParseTime(t, "2023-01-02"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.4.0"),
+				Time:    mustParseTime(t, "2023-01-08"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+				semver.MustParse("v1.2.0"),
+				semver.MustParse("v1.3.0"),
+				semver.MustParse("v1.5.0"),
+				semver.MustParse("v1.4.0"),
+				semver.MustParse("v1.6.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.4.0"),
+					Time:    mustParseTime(t, "2023-01-08"),
+				},
+				{
+					Version: semver.MustParse("v1.5.0"),
+					Time:    mustParseTime(t, "2023-01-09"),
+				},
+			},
+		},
+		"current supplied, many versions, choose latest before, var 3": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v1.1.0"),
+				Time:    mustParseTime(t, "2023-01-02"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.3.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+				semver.MustParse("v1.2.0"),
+				semver.MustParse("v1.3.0"),
+				semver.MustParse("v1.5.0"),
+				semver.MustParse("v1.4.0"),
+				semver.MustParse("v1.6.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.2.0"),
+					Time:    mustParseTime(t, "2023-01-04"),
+				},
+				{
+					Version: semver.MustParse("v1.3.0"),
+					Time:    mustParseTime(t, "2023-01-05"),
+				},
+				{
+					Version: semver.MustParse("v1.4.0"),
+					Time:    mustParseTime(t, "2023-01-09"),
+				},
+			},
+		},
+		"single version": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-04"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.0.0"),
+					Time:    mustParseTime(t, "2023-01-04"),
+				},
+			},
+		},
+		"two version": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-07"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.0.0"),
+					Time:    mustParseTime(t, "2023-01-07"),
+				},
+				{
+					Version: semver.MustParse("v1.1.0"),
+					Time:    mustParseTime(t, "2023-01-09"),
+				},
+			},
+		},
+		"many version, var 1": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.3.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+				semver.MustParse("v1.2.0"),
+				semver.MustParse("v1.3.0"),
+				semver.MustParse("v1.5.0"),
+				semver.MustParse("v1.4.0"),
+				semver.MustParse("v1.6.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.3.0"),
+					Time:    mustParseTime(t, "2023-01-05"),
+				},
+				{
+					Version: semver.MustParse("v1.4.0"),
+					Time:    mustParseTime(t, "2023-01-09"),
+				},
+				{
+					Version: semver.MustParse("v1.5.0"),
+					Time:    mustParseTime(t, "2023-01-10"),
+				},
+			},
+		},
+		"many version, var 2": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.0.0"),
+				Time:    mustParseTime(t, "2023-01-05"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+				semver.MustParse("v1.2.0"),
+				semver.MustParse("v1.3.0"),
+				semver.MustParse("v1.5.0"),
+				semver.MustParse("v1.4.0"),
+				semver.MustParse("v1.6.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.0.0"),
+					Time:    mustParseTime(t, "2023-01-05"),
+				},
+				{
+					Version: semver.MustParse("v1.1.0"),
+					Time:    mustParseTime(t, "2023-01-10"),
+				},
+				{
+					Version: semver.MustParse("v1.3.0"),
+					Time:    mustParseTime(t, "2023-01-11"),
+				},
+			},
+		},
+		"many version, var 3": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Expected: &internal.Module{
+				Version: semver.MustParse("v1.6.0"),
+				Time:    mustParseTime(t, "2023-01-07"),
+			},
+			Versions: []*semver.Version{
+				semver.MustParse("v1.0.0"),
+				semver.MustParse("v1.1.0"),
+				semver.MustParse("v1.2.0"),
+				semver.MustParse("v1.3.0"),
+				semver.MustParse("v1.5.0"),
+				semver.MustParse("v1.4.0"),
+				semver.MustParse("v1.6.0"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v1.3.0"),
+					Time:    mustParseTime(t, "2023-01-05"),
+				},
+				{
+					Version: semver.MustParse("v1.5.0"),
+					Time:    mustParseTime(t, "2023-01-06"),
+				},
+				{
+					Version: semver.MustParse("v1.6.0"),
+					Time:    mustParseTime(t, "2023-01-07"),
+				},
+			},
+		},
+		"current supplied, fallback versions": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v0.0.0-20200723181607-f06e43cca1ab"),
+				Time:    mustParseTime(t, "2020-07-23"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v0.0.0-20201216005158-039620a65673"),
+				Time:    mustParseTime(t, "2020-12-16"),
+			},
+			FallbackVersions: []*semver.Version{
+				semver.MustParse("v0.0.0-20170218160415-a3153f7040e9"),
+				semver.MustParse("v0.0.0-20200723181607-f06e43cca1ab"),
+				semver.MustParse("v0.0.0-20200730060457-89a2a8a1fb0b"),
+				semver.MustParse("v0.0.0-20201216005158-039620a65673"),
+				semver.MustParse("v0.0.0-20231213231151-1d8dd44e695e"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v0.0.0-20201216005158-039620a65673"),
+					Time:    mustParseTime(t, "2020-12-16"),
+				},
+				{
+					Version: semver.MustParse("v0.0.0-20231213231151-1d8dd44e695e"),
+					Time:    mustParseTime(t, "2023-12-13"),
+				},
+			},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			path := "github.com/nieomylnieja/go-libyear"
+
+			modulesRepo := mocks.NewMockModulesRepo(ctrl)
+			modulesRepo.EXPECT().
+				GetVersions(path).
+				Times(1).
+				Return(test.Versions, nil)
+			versionsGetter := mocks.NewMockVersionsGetter(ctrl)
+			if len(test.FallbackVersions) > 0 {
+				versionsGetter.EXPECT().
+					GetVersions(path).
+					Times(1).
+					Return(test.FallbackVersions, nil)
+			}
+			for _, module := range test.GetInfoResponses {
+				modulesRepo.EXPECT().
+					GetInfo(path, module.Version).
+					Times(1).
+					Return(module, nil)
+			}
+			cmd := Command{ageLimit: test.Before, fallbackVersions: versionsGetter}
+
+			module, err := cmd.findLatestBefore(modulesRepo, path, test.Current)
+			require.NoError(t, err)
+			assert.Equal(t, test.Expected, module)
+		})
+	}
 }
 
 func mustParseTime(t *testing.T, date string) time.Time {

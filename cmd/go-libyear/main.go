@@ -49,9 +49,10 @@ func main() {
 			flagSkipFresh,
 			flagReleases,
 			flagVersions,
-			flagVersion,
 			flagFindLatestMajor,
 			flagNoLibyearCompensation,
+			flagAgeLimit,
+			flagVersion,
 		},
 		Suggest: true,
 	}
@@ -109,6 +110,9 @@ func run(cliCtx *cli.Context) error {
 	if cliCtx.IsSet(flagVCSCacheDir.Name) {
 		registry := golibyear.NewVCSRegistry(flagVCSCacheDir.Get(cliCtx))
 		builder = builder.WithVCSRegistry(registry)
+	}
+	if cliCtx.IsSet(flagAgeLimit.Name) {
+		builder = builder.WithAgeLimit(*flagAgeLimit.Get(cliCtx))
 	}
 
 	cmd, err := builder.Build()

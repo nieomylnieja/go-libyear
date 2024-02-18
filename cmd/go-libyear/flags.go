@@ -109,6 +109,11 @@ var (
 			"values if latest version was published before current version",
 		Action: useOnlyWith[bool]("no-libyear-compensation", flagFindLatestMajor.Name),
 	}
+	flagAgeLimit = &cli.TimestampFlag{
+		Name:   "age-limit",
+		Layout: time.RFC3339,
+		Usage:  "Only consider versions which were published before or at the specified date",
+	}
 	flagVersion = &cli.BoolFlag{
 		Name:    "version",
 		Aliases: []string{"v"},
