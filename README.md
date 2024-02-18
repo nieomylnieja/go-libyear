@@ -130,6 +130,22 @@ Example:
 | JSON   | `--json`  |
 | CSV    | `--csv`   |
 
+### Historical data
+
+In order to calculate the metrics in a given point in time,
+use `--age-limit` flag.
+Example:
+
+```sh
+go-libyear --age-limit 2022-10-01T12:00:00Z ./go.mod
+```
+
+The latest version for each package will be appointed as the latest version
+of the package before or at the provided timestamp.
+
+The flag works any other flag. If using a script to extract a history
+of the calculated metrics, it is recommended to use `--cache` flag as well.
+
 ### Caching
 
 `go-libyear` ships with a built-in caching mechanism.
