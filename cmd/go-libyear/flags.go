@@ -103,16 +103,16 @@ var (
 		Aliases: []string{"M"},
 		Usage:   "Use next, greater than or equal to v2 version as the latest",
 	}
-	flagBefore = &cli.TimestampFlag{
-		Name:   "before",
-		Layout: time.RFC3339,
-		Usage:  "Only consider versions which were published before the specified date",
-	}
 	flagNoLibyearCompensation = &cli.BoolFlag{
 		Name: "no-libyear-compensation",
 		Usage: "Do not compensate for negative or zero libyear " +
 			"values if latest version was published before current version",
 		Action: useOnlyWith[bool]("no-libyear-compensation", flagFindLatestMajor.Name),
+	}
+	flagAgeLimit = &cli.TimestampFlag{
+		Name:   "age-limit",
+		Layout: time.RFC3339,
+		Usage:  "Only consider versions which were published before or at the specified date",
 	}
 	flagVersion = &cli.BoolFlag{
 		Name:    "version",

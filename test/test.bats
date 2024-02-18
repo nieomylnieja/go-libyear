@@ -22,6 +22,7 @@ setup_file() {
 	export GOPROXY="http://$SERVER_HOST:$SERVER_PORT"
   export TEST_GO_MOD="$INPUTS/test-go.mod"
   export TEST_PRIVATE_GO_MOD="$INPUTS/private-go.mod"
+  export AGE_LIMIT_GO_MOD="$INPUTS/test-limit-age-go.mod"
 }
 
 # teardown_file is run once for the whole file after all tests finished.
@@ -152,6 +153,12 @@ setup() {
 	run go-libyear --versions --releases --indirect --pkg github.com/nieomylnieja/private-go-module-test@v0.3.0
 	assert_success
 	assert_output_equals all_for_private_pkg_v0.3.0
+}
+
+@test "go_proxy: limit age" {
+	run go-libyear --indirect --versions --releases --age-limit 2022-10-01T12:00:00Z "$AGE_LIMIT_GO_MOD"
+	assert_success
+	assert_output_equals all_with_age_limit
 }
 
 @test "go_proxy: cache with XDG_CACHE_HOME" {

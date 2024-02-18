@@ -2,6 +2,7 @@ package libyear
 
 import (
 	"path/filepath"
+	"time"
 
 	"github.com/nieomylnieja/go-libyear/internal"
 )
@@ -22,6 +23,7 @@ type CommandBuilder struct {
 	cacheFilePath string
 	opts          Option
 	vcsRegistry   *VCSRegistry
+	ageLimit      time.Time
 }
 
 func (b CommandBuilder) WithCache(cacheFilePath string) CommandBuilder {
@@ -49,6 +51,11 @@ func (b CommandBuilder) WithOptions(opts ...Option) CommandBuilder {
 
 func (b CommandBuilder) WithVCSRegistry(registry *VCSRegistry) CommandBuilder {
 	b.vcsRegistry = registry
+	return b
+}
+
+func (b CommandBuilder) WithAgeLimit(limit time.Time) CommandBuilder {
+	b.ageLimit = limit
 	return b
 }
 
@@ -90,5 +97,6 @@ func (b CommandBuilder) Build() (*Command, error) {
 		fallbackVersions: b.fallback,
 		opts:             b.opts,
 		vcs:              b.vcsRegistry,
+		ageLimit:         b.ageLimit,
 	}, nil
 }

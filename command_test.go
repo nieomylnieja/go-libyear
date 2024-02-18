@@ -604,12 +604,10 @@ func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable_NoCompensate(t *testin
 }
 
 func TestCommand_FindLatestBefore_CheckCurrentTime(t *testing.T) {
-	cmd := Command{before: mustParseTime(t, "2023-01-12")}
+	cmd := Command{ageLimit: mustParseTime(t, "2023-01-12")}
 
-	_, err := cmd.findLatestBefore("", &internal.Module{
-		Time: mustParseTime(t, "2023-01-13"),
-	})
-	assert.EqualError(t, err, "current module release time: 2023-01-13 is after the before flag value: 2023-01-12")
+	_, err := cmd.findLatestBefore(nil, "", &internal.Module{Time: mustParseTime(t, "2023-01-13")})
+	require.EqualError(t, err, "current module release time: 2023-01-13 is after the before flag value: 2023-01-12")
 }
 
 func TestCommand_FindLatestBefore_NoMatchingVersions(t *testing.T) {
@@ -625,20 +623,20 @@ func TestCommand_FindLatestBefore_NoMatchingVersions(t *testing.T) {
 		GetInfo(path, semver.MustParse("v1.0.0")).
 		Times(1).
 		Return(&internal.Module{Time: mustParseTime(t, "2023-01-14")}, nil)
-	cmd := Command{repo: modulesRepo, before: mustParseTime(t, "2023-01-13")}
+	cmd := Command{ageLimit: mustParseTime(t, "2023-01-13")}
 
-	_, err := cmd.findLatestBefore(path, nil)
-	assert.ErrorIs(t, err, errNoMatchingVersions)
+	_, err := cmd.findLatestBefore(modulesRepo, path, nil)
+	require.ErrorIs(t, err, errNoMatchingVersions)
 }
 
 func TestCommand_FindLatestBefore(t *testing.T) {
 	tests := map[string]struct {
-		Before          time.Time
-		Path            string
-		Current         *internal.Module
-		Expected        *internal.Module
-		Versions        []*semver.Version
-		GetInfoReponses []*internal.Module
+		Before           time.Time
+		Current          *internal.Module
+		Expected         *internal.Module
+		Versions         []*semver.Version
+		FallbackVersions []*semver.Version
+		GetInfoResponses []*internal.Module
 	}{
 		"current supplied, no new versions": {
 			Before: mustParseTime(t, "2023-01-08"),
@@ -681,7 +679,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.0.0"),
 				semver.MustParse("v1.1.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.1.0"),
 					Time:    mustParseTime(t, "2023-01-05"),
@@ -707,7 +705,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.5.0"),
 				semver.MustParse("v1.6.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.4.0"),
 					Time:    mustParseTime(t, "2023-01-07"),
@@ -737,7 +735,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.4.0"),
 				semver.MustParse("v1.6.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.4.0"),
 					Time:    mustParseTime(t, "2023-01-08"),
@@ -767,7 +765,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.4.0"),
 				semver.MustParse("v1.6.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.2.0"),
 					Time:    mustParseTime(t, "2023-01-04"),
@@ -791,7 +789,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 			Versions: []*semver.Version{
 				semver.MustParse("v1.0.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.0.0"),
 					Time:    mustParseTime(t, "2023-01-04"),
@@ -808,7 +806,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.0.0"),
 				semver.MustParse("v1.1.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.0.0"),
 					Time:    mustParseTime(t, "2023-01-07"),
@@ -834,7 +832,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.4.0"),
 				semver.MustParse("v1.6.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.3.0"),
 					Time:    mustParseTime(t, "2023-01-05"),
@@ -864,7 +862,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.4.0"),
 				semver.MustParse("v1.6.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.0.0"),
 					Time:    mustParseTime(t, "2023-01-05"),
@@ -894,7 +892,7 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				semver.MustParse("v1.4.0"),
 				semver.MustParse("v1.6.0"),
 			},
-			GetInfoReponses: []*internal.Module{
+			GetInfoResponses: []*internal.Module{
 				{
 					Version: semver.MustParse("v1.3.0"),
 					Time:    mustParseTime(t, "2023-01-05"),
@@ -909,6 +907,34 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				},
 			},
 		},
+		"current supplied, fallback versions": {
+			Before: mustParseTime(t, "2023-01-08"),
+			Current: &internal.Module{
+				Version: semver.MustParse("v0.0.0-20200723181607-f06e43cca1ab"),
+				Time:    mustParseTime(t, "2020-07-23"),
+			},
+			Expected: &internal.Module{
+				Version: semver.MustParse("v0.0.0-20201216005158-039620a65673"),
+				Time:    mustParseTime(t, "2020-12-16"),
+			},
+			FallbackVersions: []*semver.Version{
+				semver.MustParse("v0.0.0-20170218160415-a3153f7040e9"),
+				semver.MustParse("v0.0.0-20200723181607-f06e43cca1ab"),
+				semver.MustParse("v0.0.0-20200730060457-89a2a8a1fb0b"),
+				semver.MustParse("v0.0.0-20201216005158-039620a65673"),
+				semver.MustParse("v0.0.0-20231213231151-1d8dd44e695e"),
+			},
+			GetInfoResponses: []*internal.Module{
+				{
+					Version: semver.MustParse("v0.0.0-20201216005158-039620a65673"),
+					Time:    mustParseTime(t, "2020-12-16"),
+				},
+				{
+					Version: semver.MustParse("v0.0.0-20231213231151-1d8dd44e695e"),
+					Time:    mustParseTime(t, "2023-12-13"),
+				},
+			},
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -920,15 +946,22 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 				GetVersions(path).
 				Times(1).
 				Return(test.Versions, nil)
-			for _, module := range test.GetInfoReponses {
+			versionsGetter := mocks.NewMockVersionsGetter(ctrl)
+			if len(test.FallbackVersions) > 0 {
+				versionsGetter.EXPECT().
+					GetVersions(path).
+					Times(1).
+					Return(test.FallbackVersions, nil)
+			}
+			for _, module := range test.GetInfoResponses {
 				modulesRepo.EXPECT().
 					GetInfo(path, module.Version).
 					Times(1).
 					Return(module, nil)
 			}
-			cmd := Command{repo: modulesRepo, before: test.Before}
+			cmd := Command{ageLimit: test.Before, fallbackVersions: versionsGetter}
 
-			module, err := cmd.findLatestBefore(path, test.Current)
+			module, err := cmd.findLatestBefore(modulesRepo, path, test.Current)
 			require.NoError(t, err)
 			assert.Equal(t, test.Expected, module)
 		})

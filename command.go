@@ -50,7 +50,7 @@ type Command struct {
 	fallbackVersions VersionsGetter
 	opts             Option
 	vcs              *VCSRegistry
-	before           time.Time
+	ageLimit         time.Time
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -114,6 +114,15 @@ func (c Command) runForModule(module *internal.Module) error {
 		}
 	}
 
+	// Since we're parsing the go.mod file directly, we might need to fetch the Module.Time.
+	if module.Time.IsZero() {
+		fetchedModule, err := repo.GetInfo(module.Path, module.Version)
+		if err != nil {
+			return err
+		}
+		module.Time = fetchedModule.Time
+	}
+
 	// Fetch latest.
 	latest, err := c.getLatestInfo(module, repo)
 	if err != nil {
@@ -126,15 +135,6 @@ func (c Command) runForModule(module *internal.Module) error {
 		return nil
 	}
 	module.Latest = latest
-
-	// Since we're parsing the go.mod file directly, we might need to fetch the Module.Time.
-	if module.Time.IsZero() {
-		fetchedModule, err := repo.GetInfo(module.Path, module.Version)
-		if err != nil {
-			return err
-		}
-		module.Time = fetchedModule.Time
-	}
 
 	currentTime := module.Time
 	if c.optionIsSet(OptionFindLatestMajor) &&
@@ -196,10 +196,15 @@ func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease 
 	if !isPrerelease {
 		return nil, errNoVersions
 	}
+	fallback := c.fallbackVersions
+	// Alternative is the fallback as na argument to the function, which makes it even more messy.
+	if _, ok := repo.(VCSHandler); ok {
+		fallback = repo
+	}
 	// Try fetching the versions from deps.dev.
 	// Go list does not list prerelease versions, which is fine,
 	// unless we're dealing with a prerelease version ourselves.
-	versions, err = c.fallbackVersions.GetVersions(path)
+	versions, err = fallback.GetVersions(path)
 	if err != nil {
 		return nil, err
 	}
@@ -221,14 +226,14 @@ func (c Command) getLatestInfo(current *internal.Module, repo ModulesRepo) (*int
 			lts *internal.Module
 			err error
 		)
-		if c.before.IsZero() {
+		if c.ageLimit.IsZero() {
 			lts, err = repo.GetLatestInfo(path)
 		} else {
 			// If this is the first iteration, optimize findLatestBefore by passing it the current version module.
 			if latest == nil {
-				lts, err = c.findLatestBefore(path, current)
+				lts, err = c.findLatestBefore(repo, path, current)
 			} else {
-				lts, err = c.findLatestBefore(path, nil)
+				lts, err = c.findLatestBefore(repo, path, nil)
 			}
 		}
 		if err != nil {
@@ -357,13 +362,15 @@ var errNoMatchingVersions = errors.New("no matching versions")
 // findLatestBefore uses binary search to find the latest module published before the given time.
 // It is highly recommended to use cache when calling this function.
 // current argument is optional, if it is provided, the function optimizes its search by skipping
-// every version preceeding current version.
-func (c Command) findLatestBefore(path string, current *internal.Module) (*internal.Module, error) {
-	if current != nil && c.before.Before(current.Time) {
+// every version preceding current version.
+func (c Command) findLatestBefore(repo ModulesRepo, path string, current *internal.Module) (*internal.Module, error) {
+	if current != nil && c.ageLimit.Before(current.Time) {
 		return nil, errors.Errorf("current module release time: %s is after the before flag value: %s",
-			current.Time.Format(time.DateOnly), c.before.Format(time.DateOnly))
+			current.Time.Format(time.DateOnly), c.ageLimit.Format(time.DateOnly))
 	}
-	versions, err := c.repo.GetVersions(path)
+	// Make sure we handle prerelease versions as well.
+	isPrerelease := current != nil && current.Version.Prerelease() != ""
+	versions, err := c.getVersionsForPath(repo, path, isPrerelease)
 	if err != nil {
 		return nil, err
 	}
@@ -377,11 +384,11 @@ func (c Command) findLatestBefore(path string, current *internal.Module) (*inter
 	latest := current
 	for start <= end {
 		mid := (start + end) / 2
-		lts, err := c.repo.GetInfo(path, versions[mid])
+		lts, err := repo.GetInfo(path, versions[mid])
 		if err != nil {
 			return nil, err
 		}
-		if lts.Time.After(c.before) {
+		if lts.Time.After(c.ageLimit) {
 			// Investigate the lower half of the range.
 			end = mid - 1
 		} else {
