@@ -2,9 +2,9 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "cspell": "8.3.2",
+    "cspell": "8.6.1",
     "markdownlint-cli": "0.39.0",
-    "yaml": "2.3.4"
+    "yaml": "2.4.1"
   },
   "scripts": {
     "format-cspell-config": "node ./scripts/format-cspell-config.js"
