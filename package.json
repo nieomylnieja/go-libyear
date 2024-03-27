@@ -9,5 +9,5 @@
   "scripts": {
     "format-cspell-config": "node ./scripts/format-cspell-config.js"
   },
-  "packageManager": "yarn@1.22.21"
+  "packageManager": "yarn@1.22.22"
 }
