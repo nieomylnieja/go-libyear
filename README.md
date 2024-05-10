@@ -25,7 +25,7 @@ make build
 ## Usage
 
 `go-libyear` can be used both as a CLI and Go library.
-The CLI usage is also documented in [usage.txt](./cmd/usage.txt)
+The CLI usage is also documented in [usage.txt](./cmd/go-libyear/usage.txt)
 and accessed through `go-libyear --help`.
 
 Basic usage:
