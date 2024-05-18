@@ -43,12 +43,13 @@ func (v *VCSRegistry) IsPrivate(path string) bool {
 // nolint: ireturn
 func (v *VCSRegistry) GetHandler(path string) (ModulesRepo, error) {
 	var handler VCSHandler
-	for _, handler = range v.vcsHandlers {
-		canHandle, err := handler.CanHandle(path)
+	for _, h := range v.vcsHandlers {
+		canHandle, err := h.CanHandle(path)
 		if err != nil {
 			return nil, err
 		}
 		if canHandle {
+			handler = h
 			break
 		}
 	}
