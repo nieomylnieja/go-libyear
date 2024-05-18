@@ -106,7 +106,8 @@ func (c Command) runForModule(module *internal.Module) error {
 	module.Skipped = true
 
 	// Verify if the module is private.
-	if c.vcs.IsPrivate(module.Path) {
+	// Use default handler for go-list.
+	if !c.optionIsSet(OptionUseGoList) && c.vcs.IsPrivate(module.Path) {
 		var err error
 		repo, err = c.vcs.GetHandler(module.Path)
 		if err != nil {

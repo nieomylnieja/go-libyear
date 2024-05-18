@@ -10,6 +10,8 @@ import (
 	"github.com/nieomylnieja/go-libyear/internal"
 )
 
+//go:generate mockgen -destination internal/mocks/vcs.go -package mocks -typed . VCSHandler 
+
 // VCSHandler is an interface that can be implemented by specifc VCS handler.
 type VCSHandler interface {
 	ModulesRepo
