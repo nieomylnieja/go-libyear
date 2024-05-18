@@ -1,11 +1,5 @@
 name: Scan vulnerabilities
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   schedule:
     # Run at 8:00 AM every weekday.
     - cron:  '0 8 * * 1-5'
