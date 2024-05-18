@@ -968,6 +968,41 @@ func TestCommand_FindLatestBefore(t *testing.T) {
 	}
 }
 
+// Fixes: https://github.com/nieomylnieja/go-libyear/issues/56
+func TestCommand_UseDefaultHandlerForPrivateRepoWithGoList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	currentLatest := &internal.Module{
+		Path:    "github.com/nieomylnieja/go-libyear",
+		Version: semver.MustParse("v0.5.0"),
+		Time:    mustParseTime(t, "2024-05-20"),
+	}
+	modulesRepo := mocks.NewMockModulesRepo(ctrl)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/nieomylnieja/go-libyear").
+		Times(1).
+		Return(currentLatest, nil)
+	modulesRepo.EXPECT().
+		GetLatestInfo("github.com/nieomylnieja/go-libyear/v2").
+		Times(1).
+		Return(nil, errors.New("no matching versions"))
+	vcsHandler := mocks.NewMockVCSHandler(ctrl)
+	vcsHandler.EXPECT().
+		CanHandle(gomock.Any()).
+		Times(0)
+	cmd := Command{
+		repo: modulesRepo,
+		opts: OptionFindLatestMajor,
+		vcs: &VCSRegistry{
+			vcsHandlers: []VCSHandler{vcsHandler},
+		},
+	}
+
+	module := currentLatest
+	err := cmd.runForModule(module)
+
+	require.NoError(t, err)
+}
+
 func mustParseTime(t *testing.T, date string) time.Time {
 	t.Helper()
 	parsed, _ := time.Parse(time.DateOnly, date)

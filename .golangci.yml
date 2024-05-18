@@ -1,9 +1,6 @@
 run:
   timeout: 5m
   modules-download-mode: readonly
-  skip-dirs:
-    - scripts
-    - test
   skip-dirs-use-default: true
 
 issues:
@@ -12,6 +9,9 @@ issues:
   # Value 0 means show all.
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-dirs:
+    - scripts
+    - test
 
 linters-settings:
   revive:
