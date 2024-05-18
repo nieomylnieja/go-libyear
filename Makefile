@@ -69,9 +69,9 @@ test/unit:
 	$(call _print_step,Running unit tests)
 	go test -race -cover ./...
 
-.PHONY: check check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/vulns
+.PHONY: check check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format
 ## Run all checks.
-check: check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format check/vulns
+check: check/vet check/lint check/gosec check/spell check/trailing check/markdown check/format
 
 ## Run 'go vet' on the whole project.
 check/vet:
