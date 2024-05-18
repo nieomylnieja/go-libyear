@@ -1008,17 +1008,3 @@ func mustParseTime(t *testing.T, date string) time.Time {
 	parsed, _ := time.Parse(time.DateOnly, date)
 	return parsed
 }
-
-type mockVCSHandler struct {
-	ModulesRepo
-}
-
-// CanHandle reports whether the vcs can handle the given path.
-func (m *mockVCSHandler) CanHandle(path string) (bool, error) {
-	return true, nil
-}
-
-// Name reports the name of the VCS system.
-func (m *mockVCSHandler) Name() string {
-	return ""
-}
