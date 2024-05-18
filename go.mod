@@ -9,7 +9,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.1
 	go.uber.org/mock v0.4.0
 	golang.org/x/mod v0.17.0
-	golang.org/x/sync v0.6.0
+	golang.org/x/sync v0.7.0
 )
 
 require (
