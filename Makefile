@@ -101,7 +101,7 @@ check/trailing:
 ## Check markdown files for potential issues with markdownlint.
 check/markdown:
 	$(call _print_step,Verifying Markdown files)
-	yarn --silent markdownlint '*.md' --disable MD010, MD034 # MD010 does not handle code blocks well.
+	yarn --silent markdownlint '**/*.md' --ignore node_modules
 
 ## Check for potential vulnerabilities across all Go dependencies.
 check/vulns:
