@@ -114,11 +114,11 @@ Example:
 
 ### Module sources
 
-| Source      | Flag      | Example                                                               |
-|-------------|-----------|-----------------------------------------------------------------------|
-| File path   | _default_ | ~/my-project/go.mod                                                   |
-| URL         | `--url`   | https://raw.githubusercontent.com/nieomylnieja/go-libyear/main/go.mod |
-| Module path | `--pkg`   | github.com/nieomylnieja/go-libyear@latest                             |
+| Source      | Flag      | Example                                                                                                         |
+|-------------|-----------|-----------------------------------------------------------------------------------------------------------------|
+| File path   | _default_ | ~/my-project/go.mod                                                                                             |
+| URL         | `--url`   | https://raw.githubusercontent.com/nieomylnieja/go-libyear/main/go.mod  <!-- markdownlint-disable-line MD034 --> |
+| Module path | `--pkg`   | github.com/nieomylnieja/go-libyear@latest                                                                       |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -219,7 +219,7 @@ it will drop the following error:
 updates to go.sum needed, disabled by -mod=readonly
 ```
 
-Due to that it is advised to use stick with default modules information
+Due to that it is advised to stick with default modules information
 provider.
 
 ## Development
@@ -234,8 +234,8 @@ CLI tests.
 
 Inspired directly
 by [SE Radio episode 587](https://www.se-radio.net/2023/10/se-radio-587-m-scott-ford-on-managing-dependency-freshness/).
-Further reading through https://libyear.com/ and
-mimicking https://github.com/jaredbeck/libyear-bundler capabilities.
+Further reading through [libyear.com](https://libyear.com/) and
+mimicking [libyear-bundler](https://github.com/jaredbeck/libyear-bundler) capabilities.
 
 All the concepts and theory is based
 on or directly quoted
