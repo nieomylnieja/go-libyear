@@ -62,7 +62,7 @@ test/cli:
 		--build-arg LDFLAGS="-X main.BuildVersion=2.0.0 -X main.BuildGitTag=v2.0.0 -X main.BuildDate=2023-10-23T08:03:03Z" \
 		-t go-libyear-test-bin .
 	docker build -t go-libyear-bats -f $(TEST_DIR)/Dockerfile .
-	docker run --rm go-libyear-bats -F pretty $(TEST_DIR)/*
+	docker run --rm go-libyear-bats -F pretty $(TEST_DIR)/*.bats
 
 ## Run all unit tests.
 test/unit:
