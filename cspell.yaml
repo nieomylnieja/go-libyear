@@ -39,6 +39,7 @@ words:
   - govulncheck
   - ifeq
   - ldflags
+  - nieomylnieja
   - procs
   - strs
   - vuln
