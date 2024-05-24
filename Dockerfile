@@ -16,6 +16,12 @@ RUN CGO_ENABLED=0 go build \
 
 FROM scratch
 
+# https://github.com/opencontainers/image-spec/blob/main/annotations.md
+LABEL org.opencontainers.image.authors="nieomylnieja"
+LABEL org.opencontainers.image.title="go-libyear"
+LABEL org.opencontainers.image.description="Calculate Go module's libyear"
+LABEL org.opencontainers.image.source="https://github.com/nieomylnieja/go-libyear"
+
 COPY --from=builder /artifacts/go-libyear ./go-libyear
 
 ENTRYPOINT ["./go-libyear"]

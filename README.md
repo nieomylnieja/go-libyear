@@ -22,6 +22,14 @@ make build
 ./bin/go-libyear ./go.mod
 ```
 
+### Docker
+
+Docker images hosted on GitHub Container Registry are also provided:
+
+```shell
+docker pull ghcr.io/nieomylnieja/go-libyear:latest
+```
+
 ## Usage
 
 `go-libyear` can be used both as a CLI and Go library.
