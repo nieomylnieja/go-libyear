@@ -25,6 +25,11 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GORELEASER_TOKEN}}
   image:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+      contents: read
+      attestations: write
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
