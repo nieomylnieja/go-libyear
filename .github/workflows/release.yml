@@ -2,7 +2,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 jobs:
   binary:
     runs-on: ubuntu-latest
@@ -49,6 +49,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v5
@@ -57,6 +60,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            LDFLAGS="-s -w -X main.BuildVersion=${{ github.ref }} -X main.BuildGitTag=${{ github.ref }} -X main.BuildDate=${{ steps.date.outputs.date }}"
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
