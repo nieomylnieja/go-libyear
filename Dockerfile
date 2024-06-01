@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 go build \
   -o /artifacts/go-libyear \
   "${PWD}/cmd/go-libyear"
 
-FROM scratch
+FROM gcr.io/distroless/static-debian12
 
 # https://github.com/opencontainers/image-spec/blob/main/annotations.md
 LABEL org.opencontainers.image.authors="nieomylnieja"
