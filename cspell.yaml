@@ -25,6 +25,7 @@ ignorePaths:
   - bin/**
   - test/**
 words:
+  - distroless
   - endef
   - gobin
   - gofumpt
