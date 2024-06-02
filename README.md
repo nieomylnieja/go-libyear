@@ -24,10 +24,12 @@ make build
 
 ### Docker
 
-Docker images hosted on GitHub Container Registry are also provided:
+Docker images hosted on [GitHub Container Registry](https://github.com/nieomylnieja/go-libyear/pkgs/container/go-libyear)
+are also provided:
 
 ```shell
 docker pull ghcr.io/nieomylnieja/go-libyear:latest
+docker run --rm ghcr.io/nieomylnieja/go-libyear -p github.com/nieomylnieja/go-libyear
 ```
 
 ## Usage
