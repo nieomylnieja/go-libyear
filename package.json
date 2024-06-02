@@ -4,7 +4,7 @@
   "devDependencies": {
     "cspell": "8.8.3",
     "markdownlint-cli": "0.41.0",
-    "yaml": "2.4.2"
+    "yaml": "2.4.3"
   },
   "scripts": {
     "format-cspell-config": "node ./scripts/format-cspell-config.js"
