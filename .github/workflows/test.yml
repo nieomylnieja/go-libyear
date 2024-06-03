@@ -1,0 +1,13 @@
+name: test
+
+on: [pull_request_review]
+
+jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run My Custom Action
+        uses: ./action.yml
+        with:
+          condition: 'special'

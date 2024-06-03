@@ -1,0 +1,22 @@
+name: "Golang Libyear Calculator"
+description: "Calculates Golang libyear for your module"
+inputs:
+  module-path:
+    description: "Path to the module, can be either a URL, module name or file path"
+    required: true
+    default: "go.mod"
+  source:
+    description: "Source of the "
+    required: false
+outputs:
+  libyear:
+    description: "Your module's libyear"
+runs:
+  using: "docker"
+  image: "ghcr.io/nieomylnieja/go-libyear:latest"
+  args:
+    - ${{ inputs.module-path }}
+    - ${{ inputs.module-path }}
+branding:
+  icon: "package"
+  color: "blue"
