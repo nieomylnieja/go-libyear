@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "cspell": "8.8.3",
+    "cspell": "8.8.4",
     "markdownlint-cli": "0.41.0",
     "yaml": "2.4.3"
   },
