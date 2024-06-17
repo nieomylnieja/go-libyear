@@ -58,7 +58,7 @@ jobs:
         run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
