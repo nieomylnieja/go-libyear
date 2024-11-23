@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
 	go.uber.org/mock v0.5.0
 	golang.org/x/mod v0.20.0
