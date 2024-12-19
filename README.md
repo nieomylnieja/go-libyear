@@ -2,6 +2,8 @@
 
 Calculate Go module's libyear!
 
+[![go-recipes](https://raw.githubusercontent.com/nikolaydubina/go-recipes/main/badge.svg?raw=true)](https://github.com/nikolaydubina/go-recipes)
+
 ## Install
 
 Use pre-built binaries from
