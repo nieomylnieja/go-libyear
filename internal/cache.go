@@ -124,7 +124,7 @@ func newFilePersistence(filePath string) (*filePersistence, error) {
 		filePath = filepath.Join(filePath, defaultCacheFileName)
 	}
 	// The function does an os.Stat under the hood anyway, so there's no gain in pre-checking this step.
-	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o750); err != nil {
 		return nil, err
 	}
 	// #nosec G304
