@@ -52,7 +52,6 @@ linters:
     - bodyclose
     - errcheck
     - exhaustive
-    - exportloopref
     - gocheckcompilerdirectives
     - gochecknoinits
     - gocritic
