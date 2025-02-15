@@ -1,7 +1,7 @@
 {
   "packages": [
     "mockgen@latest",
-    "yarn@latest",
+    "yarn@1.22.22",
     "golines@latest",
     "govulncheck@latest",
     "gofumpt@latest",
