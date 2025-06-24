@@ -1,11 +1,11 @@
 {
   "packages": [
     "mockgen@latest",
-    "yarn@latest",
+    "yarn@1.22.22",
     "golines@latest",
     "govulncheck@latest",
     "gofumpt@0.8.0",
-    "golangci-lint@latest",
+    "golangci-lint@1.64.8",
     "gosec@latest",
     "go@1.24.4",
     "gotools@latest"
