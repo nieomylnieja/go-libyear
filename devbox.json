@@ -4,7 +4,7 @@
     "yarn@latest",
     "golines@latest",
     "govulncheck@latest",
-    "gofumpt@latest",
+    "gofumpt@0.8.0",
     "golangci-lint@latest",
     "gosec@latest",
     "go@1.24.4",
