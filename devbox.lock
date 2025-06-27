@@ -335,50 +335,51 @@
         }
       }
     },
-    "mockgen@latest": {
-      "last_modified": "2024-11-28T07:51:56Z",
-      "resolved": "github:NixOS/nixpkgs/226216574ada4c3ecefcbbec41f39ce4655f78ef#mockgen",
+    "mockgen@0.5.2": {
+      "last_modified": "2025-06-20T02:24:11Z",
+      "resolved": "github:NixOS/nixpkgs/076e8c6678d8c54204abcb4b1b14c366835a58bb#mockgen",
       "source": "devbox-search",
-      "version": "0.5.0",
+      "version": "0.5.2",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/anb1b6lm8pqi0z2d51x61kf252pd3glz-mockgen-0.5.0",
+              "path": "/nix/store/gnm385gsmmmyvx3k3qh5fwb6xzv5ygyj-mockgen-0.5.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/anb1b6lm8pqi0z2d51x61kf252pd3glz-mockgen-0.5.0"
+          "store_path": "/nix/store/gnm385gsmmmyvx3k3qh5fwb6xzv5ygyj-mockgen-0.5.2"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/c5vwyb119ppfcfwknf2a24w3bmiwrmys-mockgen-0.5.0",
+              "path": "/nix/store/mwxlfvnwnw3ljijhzp2zvcpn3mcwx2hd-mockgen-0.5.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/c5vwyb119ppfcfwknf2a24w3bmiwrmys-mockgen-0.5.0"
+          "store_path": "/nix/store/mwxlfvnwnw3ljijhzp2zvcpn3mcwx2hd-mockgen-0.5.2"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/k5hbsxcp402l1gih2s6cxy1fkfqcl1l1-mockgen-0.5.0",
+              "path": "/nix/store/ry9g5wq6hdwzj130xq99wa5bq7lpghqs-mockgen-0.5.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/k5hbsxcp402l1gih2s6cxy1fkfqcl1l1-mockgen-0.5.0"
+          "store_path": "/nix/store/ry9g5wq6hdwzj130xq99wa5bq7lpghqs-mockgen-0.5.2"
         },
         "x86_64-linux": {
           "outputs": [
             {
-              "path": "/nix/store/n49nypkbq8gafvq6qzfci9vlsskc3whi-mockgen-0.5.0",
+              "name": "out",
+              "path": "/nix/store/vcj4d45xayygs56xswjkpn0g1c4qwbk7-mockgen-0.5.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/n49nypkbq8gafvq6qzfci9vlsskc3whi-mockgen-0.5.0"
+          "store_path": "/nix/store/vcj4d45xayygs56xswjkpn0g1c4qwbk7-mockgen-0.5.2"
         }
       }
     },

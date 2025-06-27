@@ -1,6 +1,6 @@
 {
   "packages": [
-    "mockgen@latest",
+    "mockgen@0.5.2",
     "yarn@1.22.22",
     "golines@0.12.2",
     "govulncheck@latest",
