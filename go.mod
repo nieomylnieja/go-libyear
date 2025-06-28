@@ -9,6 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.7
+	github.com/urfave/cli/v3 v3.3.8
 	go.uber.org/mock v0.5.2
 	golang.org/x/mod v0.25.0
 	golang.org/x/sync v0.15.0
