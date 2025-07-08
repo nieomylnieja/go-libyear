@@ -2,7 +2,7 @@ module github.com/nieomylnieja/go-libyear
 
 go 1.23.0
 
-toolchain go1.24.4
+toolchain go1.24.5
 
 require (
 	github.com/Masterminds/semver v1.5.0
