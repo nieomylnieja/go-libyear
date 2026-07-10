@@ -1,13 +1,13 @@
 package libyear
 
 import (
+	"errors"
 	"math"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"

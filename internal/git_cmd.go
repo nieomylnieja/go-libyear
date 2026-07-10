@@ -1,10 +1,9 @@
 package internal
 
 import (
+	"fmt"
 	"io"
 	"regexp"
-
-	"github.com/pkg/errors"
 )
 
 // GitCmd is a wrapper over git command calls.
@@ -51,7 +50,7 @@ func getHeadBranchName(reader io.Reader) (string, error) {
 	}
 	m := gitHeadBranchRegexp.FindStringSubmatch(string(data))
 	if m == nil {
-		return "", errors.Errorf("failed to parse git head branch: '%q'", string(data))
+		return "", fmt.Errorf("failed to parse git head branch: '%q'", string(data))
 	}
 	var branch string
 	for i, name := range gitHeadBranchRegexp.SubexpNames() {
@@ -60,7 +59,7 @@ func getHeadBranchName(reader io.Reader) (string, error) {
 		}
 	}
 	if branch == "" {
-		return "", errors.Errorf("failed extract git head branch from '%q' using '%s' regexp",
+		return "", fmt.Errorf("failed extract git head branch from '%q' using '%s' regexp",
 			string(data), gitHeadBranchRegexp)
 	}
 	return branch, err

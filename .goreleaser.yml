@@ -1,4 +1,6 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 project_name: go-libyear
+version: 2
 
 release:
   github:

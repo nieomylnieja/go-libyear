@@ -20,6 +20,7 @@ import (
 type MockGitCmdI struct {
 	ctrl     *gomock.Controller
 	recorder *MockGitCmdIMockRecorder
+	isgomock struct{}
 }
 
 // MockGitCmdIMockRecorder is the mock recorder for MockGitCmdI.
@@ -40,17 +41,17 @@ func (m *MockGitCmdI) EXPECT() *MockGitCmdIMockRecorder {
 }
 
 // Checkout mocks base method.
-func (m *MockGitCmdI) Checkout(arg0, arg1 string) error {
+func (m *MockGitCmdI) Checkout(path, tag string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Checkout", arg0, arg1)
+	ret := m.ctrl.Call(m, "Checkout", path, tag)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Checkout indicates an expected call of Checkout.
-func (mr *MockGitCmdIMockRecorder) Checkout(arg0, arg1 any) *MockGitCmdICheckoutCall {
+func (mr *MockGitCmdIMockRecorder) Checkout(path, tag any) *MockGitCmdICheckoutCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Checkout", reflect.TypeOf((*MockGitCmdI)(nil).Checkout), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Checkout", reflect.TypeOf((*MockGitCmdI)(nil).Checkout), path, tag)
 	return &MockGitCmdICheckoutCall{Call: call}
 }
 
@@ -78,17 +79,17 @@ func (c *MockGitCmdICheckoutCall) DoAndReturn(f func(string, string) error) *Moc
 }
 
 // Clone mocks base method.
-func (m *MockGitCmdI) Clone(arg0, arg1 string) error {
+func (m *MockGitCmdI) Clone(url, path string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Clone", arg0, arg1)
+	ret := m.ctrl.Call(m, "Clone", url, path)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Clone indicates an expected call of Clone.
-func (mr *MockGitCmdIMockRecorder) Clone(arg0, arg1 any) *MockGitCmdICloneCall {
+func (mr *MockGitCmdIMockRecorder) Clone(url, path any) *MockGitCmdICloneCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clone", reflect.TypeOf((*MockGitCmdI)(nil).Clone), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clone", reflect.TypeOf((*MockGitCmdI)(nil).Clone), url, path)
 	return &MockGitCmdICloneCall{Call: call}
 }
 
@@ -116,18 +117,18 @@ func (c *MockGitCmdICloneCall) DoAndReturn(f func(string, string) error) *MockGi
 }
 
 // GetHeadBranchName mocks base method.
-func (m *MockGitCmdI) GetHeadBranchName(arg0 string) (string, error) {
+func (m *MockGitCmdI) GetHeadBranchName(path string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHeadBranchName", arg0)
+	ret := m.ctrl.Call(m, "GetHeadBranchName", path)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHeadBranchName indicates an expected call of GetHeadBranchName.
-func (mr *MockGitCmdIMockRecorder) GetHeadBranchName(arg0 any) *MockGitCmdIGetHeadBranchNameCall {
+func (mr *MockGitCmdIMockRecorder) GetHeadBranchName(path any) *MockGitCmdIGetHeadBranchNameCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeadBranchName", reflect.TypeOf((*MockGitCmdI)(nil).GetHeadBranchName), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeadBranchName", reflect.TypeOf((*MockGitCmdI)(nil).GetHeadBranchName), path)
 	return &MockGitCmdIGetHeadBranchNameCall{Call: call}
 }
 
@@ -155,18 +156,18 @@ func (c *MockGitCmdIGetHeadBranchNameCall) DoAndReturn(f func(string) (string, e
 }
 
 // ListTags mocks base method.
-func (m *MockGitCmdI) ListTags(arg0 string) (io.Reader, error) {
+func (m *MockGitCmdI) ListTags(path string) (io.Reader, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTags", arg0)
+	ret := m.ctrl.Call(m, "ListTags", path)
 	ret0, _ := ret[0].(io.Reader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListTags indicates an expected call of ListTags.
-func (mr *MockGitCmdIMockRecorder) ListTags(arg0 any) *MockGitCmdIListTagsCall {
+func (mr *MockGitCmdIMockRecorder) ListTags(path any) *MockGitCmdIListTagsCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTags", reflect.TypeOf((*MockGitCmdI)(nil).ListTags), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTags", reflect.TypeOf((*MockGitCmdI)(nil).ListTags), path)
 	return &MockGitCmdIListTagsCall{Call: call}
 }
 
@@ -194,17 +195,17 @@ func (c *MockGitCmdIListTagsCall) DoAndReturn(f func(string) (io.Reader, error))
 }
 
 // Pull mocks base method.
-func (m *MockGitCmdI) Pull(arg0 string) error {
+func (m *MockGitCmdI) Pull(path string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pull", arg0)
+	ret := m.ctrl.Call(m, "Pull", path)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Pull indicates an expected call of Pull.
-func (mr *MockGitCmdIMockRecorder) Pull(arg0 any) *MockGitCmdIPullCall {
+func (mr *MockGitCmdIMockRecorder) Pull(path any) *MockGitCmdIPullCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockGitCmdI)(nil).Pull), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockGitCmdI)(nil).Pull), path)
 	return &MockGitCmdIPullCall{Call: call}
 }
 

@@ -5,9 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -29,7 +32,12 @@ func main() {
 	h := handler{R: responses}
 
 	log.Printf("Listening on port: %d\n", *port)
-	log.Fatalln(http.ListenAndServe(fmt.Sprintf(":%d", *port), h))
+	server := http.Server{
+		Addr:              net.JoinHostPort("", strconv.Itoa(*port)),
+		Handler:           h,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	log.Fatalln(server.ListenAndServe())
 }
 
 type handler struct {
@@ -38,7 +46,6 @@ type handler struct {
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/")
-	log.Println("Serving: ", path)
 	v, ok := h.R[path]
 	if !ok {
 		http.Error(w, fmt.Sprintf("no matching versions found for: %s", path), http.StatusNotFound)
@@ -51,9 +58,13 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Write(data)
+		if _, err := w.Write(data); err != nil {
+			log.Printf("failed to write module response: %v", err)
+		}
 	case strings.HasSuffix(path, "list"):
-		w.Write([]byte(v.(string)))
+		if _, err := w.Write([]byte(v.(string))); err != nil {
+			log.Printf("failed to write version list response: %v", err)
+		}
 	default:
 		if err := json.NewEncoder(w).Encode(v); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

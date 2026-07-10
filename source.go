@@ -1,6 +1,8 @@
 package libyear
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -8,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver"
-
-	"github.com/pkg/errors"
 )
 
 type Source interface {
@@ -83,7 +83,7 @@ func (s URLSource) Read() ([]byte, error) {
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(resp.Body)
-		return nil, errors.Errorf(
+		return nil, fmt.Errorf(
 			"unexpected response status code: %d, body: %s",
 			resp.StatusCode, string(data))
 	}

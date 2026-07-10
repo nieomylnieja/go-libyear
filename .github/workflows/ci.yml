@@ -1,4 +1,6 @@
-name: CI checks
+name: Project checks
+run-name: "Checks for ${{ github.event.pull_request.title || github.ref_name }} by @${{ github.actor }}"
+
 on:
   push:
     branches:
@@ -11,12 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install devbox
-        uses: jetpack-io/devbox-install-action@v0.13.0
+        uses: jetpack-io/devbox-install-action@v0.15.0
         with:
           enable-cache: true
       - name: Run checks
-        run: devbox run -- make check
+        run: devbox run -- just check
       - name: Run tests
-        run: devbox run -- make test
+        if: success() || failure()
+        run: devbox run -- just test

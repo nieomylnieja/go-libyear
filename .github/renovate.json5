@@ -5,9 +5,7 @@
     ":enableVulnerabilityAlertsWithLabel(security)", // https://docs.renovatebot.com/presets-default/#enablevulnerabilityalertswithlabelarg0
     "group:recommended", // https://docs.renovatebot.com/presets-group/#grouprecommended
     "workarounds:all", // https://docs.renovatebot.com/presets-workarounds/#workaroundsall
-  ],
-  "ignorePaths": [
-    "test/inputs/**",
+    ":preserveSemverRanges", // https://docs.renovatebot.com/presets-default/#preservesemverranges
   ],
   "reviewersFromCodeOwners": true,
   "dependencyDashboard": true,
@@ -18,16 +16,28 @@
   "rebaseWhen": "conflicted",
   "rangeStrategy": "pin",
   "branchPrefix": "renovate_",
-  // Manager-specific configs:
-  // This will run go mod tidy after each go.mod update.
+  "commitMessagePrefix": "chore:",
   "postUpdateOptions": ["gomodTidy"],
-  // Custom version extraction from Makefile.
-  "regexManagers": [
+  "packageRules": [
     {
-      "fileMatch": ["^Makefile$"],
-      "matchStrings": [
-        ".*renovate datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\n.*?_VERSION\\s?:=\\s?(?<currentValue>.*)\\s"
-      ]
-    }
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+      ],
+      "groupName": "minor and patch Golang dependencies",
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "addLabels": ["github-actions"],
+    },
+    {
+      "matchManagers": ["gomod"],
+      "addLabels": ["golang"],
+    },
+  ],
+  "ignorePaths": [
+    "**/vendor/**",
+    "**/node_modules/**",
   ],
 }

@@ -2,9 +2,9 @@ package internal
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os/exec"
-
-	"github.com/pkg/errors"
 )
 
 func execCmd(name string, arg ...string) (*bytes.Buffer, error) {
@@ -20,7 +20,7 @@ func execCmd(name string, arg ...string) (*bytes.Buffer, error) {
 	cmd.Stderr = &stderr
 	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
-		return nil, errors.Errorf("Failed to execute '%s' command: %s", cmd, stderr.String())
+		return nil, fmt.Errorf("failed to execute '%s' command: %s", cmd, stderr.String())
 	}
 	return &stdout, nil
 }

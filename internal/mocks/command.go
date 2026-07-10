@@ -13,15 +13,15 @@ import (
 	reflect "reflect"
 
 	semver "github.com/Masterminds/semver"
-	gomock "go.uber.org/mock/gomock"
-
 	internal "github.com/nieomylnieja/go-libyear/internal"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockModulesRepo is a mock of ModulesRepo interface.
 type MockModulesRepo struct {
 	ctrl     *gomock.Controller
 	recorder *MockModulesRepoMockRecorder
+	isgomock struct{}
 }
 
 // MockModulesRepoMockRecorder is the mock recorder for MockModulesRepo.
@@ -42,18 +42,18 @@ func (m *MockModulesRepo) EXPECT() *MockModulesRepoMockRecorder {
 }
 
 // GetInfo mocks base method.
-func (m *MockModulesRepo) GetInfo(arg0 string, arg1 *semver.Version) (*internal.Module, error) {
+func (m *MockModulesRepo) GetInfo(path string, version *semver.Version) (*internal.Module, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInfo", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetInfo", path, version)
 	ret0, _ := ret[0].(*internal.Module)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetInfo indicates an expected call of GetInfo.
-func (mr *MockModulesRepoMockRecorder) GetInfo(arg0, arg1 any) *MockModulesRepoGetInfoCall {
+func (mr *MockModulesRepoMockRecorder) GetInfo(path, version any) *MockModulesRepoGetInfoCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfo", reflect.TypeOf((*MockModulesRepo)(nil).GetInfo), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfo", reflect.TypeOf((*MockModulesRepo)(nil).GetInfo), path, version)
 	return &MockModulesRepoGetInfoCall{Call: call}
 }
 
@@ -81,18 +81,18 @@ func (c *MockModulesRepoGetInfoCall) DoAndReturn(f func(string, *semver.Version)
 }
 
 // GetLatestInfo mocks base method.
-func (m *MockModulesRepo) GetLatestInfo(arg0 string) (*internal.Module, error) {
+func (m *MockModulesRepo) GetLatestInfo(path string) (*internal.Module, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLatestInfo", arg0)
+	ret := m.ctrl.Call(m, "GetLatestInfo", path)
 	ret0, _ := ret[0].(*internal.Module)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLatestInfo indicates an expected call of GetLatestInfo.
-func (mr *MockModulesRepoMockRecorder) GetLatestInfo(arg0 any) *MockModulesRepoGetLatestInfoCall {
+func (mr *MockModulesRepoMockRecorder) GetLatestInfo(path any) *MockModulesRepoGetLatestInfoCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestInfo", reflect.TypeOf((*MockModulesRepo)(nil).GetLatestInfo), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestInfo", reflect.TypeOf((*MockModulesRepo)(nil).GetLatestInfo), path)
 	return &MockModulesRepoGetLatestInfoCall{Call: call}
 }
 
@@ -120,18 +120,18 @@ func (c *MockModulesRepoGetLatestInfoCall) DoAndReturn(f func(string) (*internal
 }
 
 // GetModFile mocks base method.
-func (m *MockModulesRepo) GetModFile(arg0 string, arg1 *semver.Version) ([]byte, error) {
+func (m *MockModulesRepo) GetModFile(path string, version *semver.Version) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetModFile", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetModFile", path, version)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetModFile indicates an expected call of GetModFile.
-func (mr *MockModulesRepoMockRecorder) GetModFile(arg0, arg1 any) *MockModulesRepoGetModFileCall {
+func (mr *MockModulesRepoMockRecorder) GetModFile(path, version any) *MockModulesRepoGetModFileCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModFile", reflect.TypeOf((*MockModulesRepo)(nil).GetModFile), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModFile", reflect.TypeOf((*MockModulesRepo)(nil).GetModFile), path, version)
 	return &MockModulesRepoGetModFileCall{Call: call}
 }
 
@@ -159,18 +159,18 @@ func (c *MockModulesRepoGetModFileCall) DoAndReturn(f func(string, *semver.Versi
 }
 
 // GetVersions mocks base method.
-func (m *MockModulesRepo) GetVersions(arg0 string) ([]*semver.Version, error) {
+func (m *MockModulesRepo) GetVersions(path string) ([]*semver.Version, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVersions", arg0)
+	ret := m.ctrl.Call(m, "GetVersions", path)
 	ret0, _ := ret[0].([]*semver.Version)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVersions indicates an expected call of GetVersions.
-func (mr *MockModulesRepoMockRecorder) GetVersions(arg0 any) *MockModulesRepoGetVersionsCall {
+func (mr *MockModulesRepoMockRecorder) GetVersions(path any) *MockModulesRepoGetVersionsCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersions", reflect.TypeOf((*MockModulesRepo)(nil).GetVersions), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersions", reflect.TypeOf((*MockModulesRepo)(nil).GetVersions), path)
 	return &MockModulesRepoGetVersionsCall{Call: call}
 }
 
@@ -201,6 +201,7 @@ func (c *MockModulesRepoGetVersionsCall) DoAndReturn(f func(string) ([]*semver.V
 type MockVersionsGetter struct {
 	ctrl     *gomock.Controller
 	recorder *MockVersionsGetterMockRecorder
+	isgomock struct{}
 }
 
 // MockVersionsGetterMockRecorder is the mock recorder for MockVersionsGetter.
@@ -221,18 +222,18 @@ func (m *MockVersionsGetter) EXPECT() *MockVersionsGetterMockRecorder {
 }
 
 // GetVersions mocks base method.
-func (m *MockVersionsGetter) GetVersions(arg0 string) ([]*semver.Version, error) {
+func (m *MockVersionsGetter) GetVersions(path string) ([]*semver.Version, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVersions", arg0)
+	ret := m.ctrl.Call(m, "GetVersions", path)
 	ret0, _ := ret[0].([]*semver.Version)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVersions indicates an expected call of GetVersions.
-func (mr *MockVersionsGetterMockRecorder) GetVersions(arg0 any) *MockVersionsGetterGetVersionsCall {
+func (mr *MockVersionsGetterMockRecorder) GetVersions(path any) *MockVersionsGetterGetVersionsCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersions", reflect.TypeOf((*MockVersionsGetter)(nil).GetVersions), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersions", reflect.TypeOf((*MockVersionsGetter)(nil).GetVersions), path)
 	return &MockVersionsGetterGetVersionsCall{Call: call}
 }
 

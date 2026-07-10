@@ -20,7 +20,7 @@ It can also be built directly from this repository:
 ```shell
 git clone https://github.com/nieomylnieja/go-libyear.git
 cd go-libyear
-make build
+just build
 ./bin/go-libyear ./go.mod
 ```
 
@@ -46,10 +46,10 @@ Basic usage:
 $ go-libyear /path/to/go.mod
 package                             version  date        latest   latest_date  libyear
 github.com/nieomylnieja/go-libyear           2023-11-06                        2.41
-github.com/pkg/errors               v0.8.1   2019-01-03  v0.9.1   2020-01-14   1.03
-github.com/urfave/cli/v2            v2.20.0  2022-10-14  v2.25.7  2023-06-14   0.67
-golang.org/x/mod                    v0.12.0  2023-06-21  v0.14.0  2023-10-25   0.35
-golang.org/x/sync                   v0.3.0   2023-06-01  v0.5.0   2023-10-11   0.36
+github.com/Masterminds/semver       v1.4.2   2019-04-07  v1.5.0   2021-09-14   2.44
+github.com/urfave/cli/v2            v2.20.0  2022-10-14  v2.27.7  2024-11-03   2.05
+golang.org/x/mod                    v0.12.0  2023-06-21  v0.26.0  2025-06-18   2.00
+golang.org/x/sync                   v0.3.0   2023-06-01  v0.15.0  2025-06-11   2.03
 ```
 
 ## Calculated metrics
@@ -220,7 +220,7 @@ It will instruct the program to utilize `go list` command instead of GOPROXY API
 
 ### Using `--go-list` flag
 
-If `--go-list` flag is provided, `go-libyear` will used `go list` command to
+If `--go-list` flag is provided, `go-libyear` will use `go list` command to
 fetch information about modules.
 Specifically it runs `go list -m -mod=readonly`.
 If the program is executed in a project containing a `go.mod` which `go.sum`
@@ -235,6 +235,18 @@ Due to that it is advised to stick with default modules information
 provider.
 
 ## Development
+
+This project uses [devbox](https://www.jetify.com/devbox/) for development
+tooling and [just](https://just.systems/) as the task runner.
+
+Common commands:
+
+```shell
+devbox shell
+just check
+just test
+just build
+```
 
 CLI application is tested
 with [bats framework](https://github.com/bats-core/bats-core).

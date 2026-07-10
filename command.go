@@ -2,6 +2,8 @@ package libyear
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	pathlib "path"
@@ -14,7 +16,6 @@ import (
 	"github.com/nieomylnieja/go-libyear/internal"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -30,7 +31,7 @@ const (
 	OptionNoLibyearCompensation                    // 32
 )
 
-//go:generate mockgen -destination internal/mocks/command.go -package mocks -typed . ModulesRepo,VersionsGetter
+//go:generate go tool mockgen -destination internal/mocks/command.go -package mocks -typed . ModulesRepo,VersionsGetter
 
 type ModulesRepo interface {
 	VersionsGetter
@@ -157,7 +158,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	module.Libyear = calculateLibyear(currentTime, latest.Time)
 	if c.optionIsSet(OptionShowReleases) {
 		versions, err := c.getAllVersions(repo, latest)
-		if err == errNoVersions {
+		if errors.Is(err, errNoVersions) {
 			log.Printf("WARN: module '%s' does not have any versions", module.Path)
 			return nil
 		}
@@ -277,7 +278,7 @@ func (c Command) findFirstModule(repo ModulesRepo, path string) (*internal.Modul
 		return nil, err
 	}
 	if len(versions) == 0 {
-		return nil, errors.Errorf("no versions found for path %s, expected at least one", path)
+		return nil, fmt.Errorf("no versions found for path %s, expected at least one", path)
 	}
 	sort.Sort(semver.Collection(versions))
 	return repo.GetInfo(path, versions[0])
@@ -346,11 +347,11 @@ func calculateVersions(module, latest *internal.Module) internal.VersionsDiff {
 
 func (c Command) newErrGroup(ctx context.Context) (*errgroup.Group, context.Context) {
 	group, ctx := errgroup.WithContext(ctx)
-	maxProcs, _ := strconv.Atoi(os.Getenv("GOMAXPROCS"))
-	if maxProcs == 0 {
-		maxProcs = 4
+	limit, _ := strconv.Atoi(os.Getenv("GOMAXPROCS"))
+	if limit == 0 {
+		limit = 4
 	}
-	group.SetLimit(maxProcs)
+	group.SetLimit(limit)
 	return group, ctx
 }
 
@@ -366,7 +367,7 @@ var errNoMatchingVersions = errors.New("no matching versions")
 // every version preceding current version.
 func (c Command) findLatestBefore(repo ModulesRepo, path string, current *internal.Module) (*internal.Module, error) {
 	if current != nil && c.ageLimit.Before(current.Time) {
-		return nil, errors.Errorf("current module release time: %s is after the before flag value: %s",
+		return nil, fmt.Errorf("current module release time: %s is after the before flag value: %s",
 			current.Time.Format(time.DateOnly), c.ageLimit.Format(time.DateOnly))
 	}
 	// Make sure we handle prerelease versions as well.

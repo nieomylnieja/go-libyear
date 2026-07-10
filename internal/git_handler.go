@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,10 +14,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 )
 
-//go:generate mockgen -destination mocks/git.go -package mocks -typed . GitCmdI
+//go:generate go tool mockgen -destination mocks/git.go -package mocks -typed . GitCmdI
 
 type GitCmdI interface {
 	Clone(url, path string) error
@@ -107,21 +107,28 @@ func (g *GitHandler) GetModFile(path string, version *semver.Version) ([]byte, e
 	moduleNameRegexp := regexp.MustCompile(fmt.Sprintf(`(?m)^module %s$`, path))
 	repo := g.getRepoForPath(path)
 	if err := g.git.Checkout(repo.DirPath, version.Original()); err != nil {
-		return nil, errors.Wrapf(err, "failed to checkout version %s of %s", version.Original(), path)
+		return nil, fmt.Errorf("failed to checkout version %s of %s: %w", version.Original(), path, err)
 	}
+	root, err := os.OpenRoot(repo.DirPath)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = root.Close()
+	}()
+
 	var goMod []byte
-	if err := filepath.Walk(repo.DirPath, func(walkPath string, info os.FileInfo, err error) error {
+	if err := fs.WalkDir(root.FS(), ".", func(walkPath string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() && info.Name() == "vendor" {
-			return filepath.SkipDir
+		if entry.IsDir() && entry.Name() == "vendor" {
+			return fs.SkipDir
 		}
-		if info.Name() != "go.mod" {
+		if entry.Name() != "go.mod" {
 			return nil
 		}
-		// #nosec G304
-		data, err := os.ReadFile(walkPath)
+		data, err := root.ReadFile(walkPath)
 		if err != nil {
 			return err
 		}
@@ -133,7 +140,7 @@ func (g *GitHandler) GetModFile(path string, version *semver.Version) ([]byte, e
 		return nil, err
 	}
 	if len(goMod) == 0 {
-		return nil, errors.Errorf("no go.mod file found for %s module", path)
+		return nil, fmt.Errorf("no go.mod file found for %s module", path)
 	}
 	return goMod, nil
 }
@@ -153,7 +160,7 @@ func (g *GitHandler) GetInfo(path string, version *semver.Version) (*Module, err
 			}, nil
 		}
 	}
-	return nil, errors.Errorf("%s version not found for %s path", version, path)
+	return nil, fmt.Errorf("%s version not found for %s path", version, path)
 }
 
 func (g *GitHandler) GetLatestInfo(path string) (*Module, error) {
@@ -185,7 +192,7 @@ func (g *GitHandler) initializeRepo(path string, repo *gitRepo) error {
 		return err
 	}
 	if err := g.git.Checkout(repo.DirPath, headBranchName); err != nil {
-		return errors.Wrapf(err, "failed to checkout version %s of %s", headBranchName, path)
+		return fmt.Errorf("failed to checkout version %s of %s: %w", headBranchName, path, err)
 	}
 	return g.git.Pull(repo.DirPath)
 }
@@ -204,11 +211,11 @@ func (g *GitHandler) listAllTags(repo *gitRepo) ([]gitTag, error) {
 		line := scanner.Text()
 		split := strings.Split(line, " ")
 		if len(split) != 2 {
-			return nil, errors.Errorf("unexpected 'git for-each-ref' output line: %s, expected: '<date> <tag>'", line)
+			return nil, fmt.Errorf("unexpected 'git for-each-ref' output line: %s, expected: '<date> <tag>'", line)
 		}
 		date, err := time.Parse(time.DateOnly, split[0])
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse date for line: %s", line)
+			return nil, fmt.Errorf("failed to parse date for line: %s: %w", line, err)
 		}
 		version, err := semver.NewVersion(split[1])
 		if err != nil {
