@@ -6,6 +6,10 @@ app_name := "go-libyear"
 main_dir := "./cmd/go-libyear"
 test_dir := "./test"
 print_step := 'printf -- "------\n%s...\n"'
+build_version := env_var_or_default("VERSION", "X.Y.Z")
+build_git_tag := if env_var_or_default("GIT_TAG", "") != "" { env_var("GIT_TAG") } else { shell("git rev-parse --short=8 HEAD") }
+build_date := if env_var_or_default("BUILD_DATE", "") != "" { env_var("BUILD_DATE") } else { shell("git show -s --format=%cd --date=short \"$1\"", build_git_tag) }
+build_ldflags := "-s -w -X main.BuildVersion=" + build_version + " -X main.BuildGitTag=" + build_git_tag + " -X main.BuildDate=" + build_date
 
 # Print this help message
 [private]
@@ -30,24 +34,23 @@ update-devbox:
 docker-build:
     #!/usr/bin/env bash
     set -euo pipefail
-    printf -- "------\n%s...\n" "Building Docker image"
-    version="${VERSION:-X.Y.Z}"
-    git_tag="${GIT_TAG:-$(git rev-parse --short=8 HEAD)}"
-    build_date="${BUILD_DATE:-$(git show -s --format=%cd --date=short "${git_tag}")}"
-    ldflags="-s -w -X main.BuildVersion=${version} -X main.BuildGitTag=${git_tag} -X main.BuildDate=${build_date}"
-    docker build -t {{ app_name }} --build-arg "LDFLAGS=${ldflags}" .
+    {{ print_step }} "Building Docker image"
+    docker build -t {{ app_name }} --build-arg "LDFLAGS={{ build_ldflags }}" .
 
 # Build go-libyear binary
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    printf -- "------\n%s...\n" "Building binary"
+    {{ print_step }} "Building binary"
     mkdir -p {{ bin_dir }}
-    version="${VERSION:-X.Y.Z}"
-    git_tag="${GIT_TAG:-$(git rev-parse --short=8 HEAD)}"
-    build_date="${BUILD_DATE:-$(git show -s --format=%cd --date=short "${git_tag}")}"
-    ldflags="-s -w -X main.BuildVersion=${version} -X main.BuildGitTag=${git_tag} -X main.BuildDate=${build_date}"
-    CGO_ENABLED=0 go build -ldflags="${ldflags}" -o {{ bin_dir }}/{{ app_name }} {{ main_dir }}
+    CGO_ENABLED=0 go build -ldflags="{{ build_ldflags }}" -o {{ bin_dir }}/{{ app_name }} {{ main_dir }}
+
+# Install go-libyear binary
+install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {{ print_step }} "Installing binary"
+    go install -ldflags="{{ build_ldflags }}" ./cmd/{{ app_name }}
 
 # Build and release the binaries
 release:
@@ -66,7 +69,7 @@ test-unit:
 test-cli:
     #!/usr/bin/env bash
     set -euo pipefail
-    printf -- "------\n%s...\n" "Running CLI tests"
+    {{ print_step }} "Running CLI tests"
     docker build \
       --build-arg "LDFLAGS=-X main.BuildVersion=2.0.0 -X main.BuildGitTag=v2.0.0 -X main.BuildDate=2023-10-23T08:03:03Z" \
       -t go-libyear-test-bin .
