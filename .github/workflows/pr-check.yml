@@ -1,0 +1,86 @@
+name: Pull request checks
+run-name: "PR checks for ${{ github.event.pull_request.title || github.event.merge_group.head_ref || github.ref_name }} by @${{ github.actor }}"
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+  merge_group:
+
+jobs:
+  pr-title-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title || '' }}
+        run: |
+          set -euo pipefail
+
+          readonly PR_TITLE_PATTERN='^(feat|fix|sec|infra|test|chore|doc): .{5,}$'
+
+          if [[ -z "${PR_TITLE}" ]]; then
+            echo "Skipping PR title check: this event does not include a pull request title."
+            exit 0
+          fi
+
+          if [[ "${PR_TITLE}" =~ ${PR_TITLE_PATTERN} ]]; then
+            exit 0
+          fi
+
+          echo "Pull request title must match: ${PR_TITLE_PATTERN}" >&2
+          echo "Example: 'feat: new pr title check'" >&2
+          exit 1
+
+  release-notes-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require release notes for feat and fix PRs
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${PR_TITLE}" =~ ^(feat|fix):[[:space:]] ]]; then
+            exit 0
+          fi
+
+          release_notes="$(
+            awk -v header="Release Notes" '
+              /^[[:space:]]*$/ {
+                next
+              }
+              /^--+/ {
+                in_section = 0
+              }
+              /^(Signed-off-by|Co-authored-by)/ {
+                in_section = 0
+              }
+              /^Does this PR contain any breaking changes\?/ {
+                in_section = 0
+              }
+              $0 ~ "^##[[:space:]]+" header "[[:space:]]*$" {
+                in_section = 1
+                next
+              }
+              /^##[[:space:]]+/ {
+                in_section = 0
+              }
+              in_section {
+                print
+              }
+            ' <<<"${PR_BODY}"
+          )"
+
+          if [[ -z "${release_notes//[[:space:]]/}" ]]; then
+            echo "feat: and fix: pull requests must include a non-empty ## Release Notes section."
+            exit 1
+          fi
+
+          if [[ "${release_notes}" == *"replace this entire paragraph"* ]]; then
+            echo "Replace the Release Notes template instructions with actual release notes."
+            exit 1
+          fi

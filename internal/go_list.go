@@ -3,10 +3,9 @@ package internal
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 
 	"github.com/Masterminds/semver"
-
-	"github.com/pkg/errors"
 )
 
 func NewGoListExecutor(useCache bool, cacheFilePath string) (*GoListExecutor, error) {

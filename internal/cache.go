@@ -47,7 +47,7 @@ func (c *Cache) Load(path string, version *semver.Version) (module *Module, load
 	c.rwm.RLock()
 	defer c.rwm.RUnlock()
 	module, loaded = c.Modules[c.moduleHash(path, version)]
-	return
+	return module, loaded
 }
 
 func (c *Cache) Save(m *Module) error {

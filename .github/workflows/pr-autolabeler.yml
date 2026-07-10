@@ -1,0 +1,20 @@
+name: Pull request labels
+run-name: "Label PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }} by @${{ github.actor }}"
+
+on:
+  # pull_request_target is required to label PRs from forks.
+  # This workflow must stay metadata-only: do not checkout or run PR code here.
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  autolabeler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter/autolabeler@v7.5.1
+        with:
+          token: ${{ github.token }}

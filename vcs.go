@@ -1,16 +1,16 @@
 package libyear
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
 	"golang.org/x/mod/module"
 
 	"github.com/nieomylnieja/go-libyear/internal"
 )
 
-//go:generate mockgen -destination internal/mocks/vcs.go -package mocks -typed . VCSHandler
+//go:generate go tool mockgen -destination internal/mocks/vcs.go -package mocks -typed . VCSHandler
 
 // VCSHandler is an interface that can be implemented by specifc VCS handler.
 type VCSHandler interface {
@@ -56,7 +56,7 @@ func (v *VCSRegistry) GetHandler(path string) (ModulesRepo, error) {
 		}
 	}
 	if handler == nil {
-		return nil, errors.Errorf(
+		return nil, fmt.Errorf(
 			"private module path: '%s' cannot be handled by any supported VCS [%s]",
 			path, v.supportedVCS())
 	}
@@ -64,9 +64,9 @@ func (v *VCSRegistry) GetHandler(path string) (ModulesRepo, error) {
 }
 
 func (v *VCSRegistry) supportedVCS() string {
-	strs := make([]string, 0, len(v.vcsHandlers))
+	names := make([]string, 0, len(v.vcsHandlers))
 	for _, handler := range v.vcsHandlers {
-		strs = append(strs, handler.Name())
+		names = append(names, handler.Name())
 	}
-	return strings.Join(strs, ", ")
+	return strings.Join(names, ", ")
 }

@@ -13,15 +13,15 @@ import (
 	reflect "reflect"
 
 	semver "github.com/Masterminds/semver"
-	gomock "go.uber.org/mock/gomock"
-
 	internal "github.com/nieomylnieja/go-libyear/internal"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockVCSHandler is a mock of VCSHandler interface.
 type MockVCSHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockVCSHandlerMockRecorder
+	isgomock struct{}
 }
 
 // MockVCSHandlerMockRecorder is the mock recorder for MockVCSHandler.
@@ -42,18 +42,18 @@ func (m *MockVCSHandler) EXPECT() *MockVCSHandlerMockRecorder {
 }
 
 // CanHandle mocks base method.
-func (m *MockVCSHandler) CanHandle(arg0 string) (bool, error) {
+func (m *MockVCSHandler) CanHandle(path string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CanHandle", arg0)
+	ret := m.ctrl.Call(m, "CanHandle", path)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CanHandle indicates an expected call of CanHandle.
-func (mr *MockVCSHandlerMockRecorder) CanHandle(arg0 any) *MockVCSHandlerCanHandleCall {
+func (mr *MockVCSHandlerMockRecorder) CanHandle(path any) *MockVCSHandlerCanHandleCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanHandle", reflect.TypeOf((*MockVCSHandler)(nil).CanHandle), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanHandle", reflect.TypeOf((*MockVCSHandler)(nil).CanHandle), path)
 	return &MockVCSHandlerCanHandleCall{Call: call}
 }
 
@@ -81,18 +81,18 @@ func (c *MockVCSHandlerCanHandleCall) DoAndReturn(f func(string) (bool, error)) 
 }
 
 // GetInfo mocks base method.
-func (m *MockVCSHandler) GetInfo(arg0 string, arg1 *semver.Version) (*internal.Module, error) {
+func (m *MockVCSHandler) GetInfo(path string, version *semver.Version) (*internal.Module, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInfo", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetInfo", path, version)
 	ret0, _ := ret[0].(*internal.Module)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetInfo indicates an expected call of GetInfo.
-func (mr *MockVCSHandlerMockRecorder) GetInfo(arg0, arg1 any) *MockVCSHandlerGetInfoCall {
+func (mr *MockVCSHandlerMockRecorder) GetInfo(path, version any) *MockVCSHandlerGetInfoCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfo", reflect.TypeOf((*MockVCSHandler)(nil).GetInfo), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfo", reflect.TypeOf((*MockVCSHandler)(nil).GetInfo), path, version)
 	return &MockVCSHandlerGetInfoCall{Call: call}
 }
 
@@ -120,18 +120,18 @@ func (c *MockVCSHandlerGetInfoCall) DoAndReturn(f func(string, *semver.Version) 
 }
 
 // GetLatestInfo mocks base method.
-func (m *MockVCSHandler) GetLatestInfo(arg0 string) (*internal.Module, error) {
+func (m *MockVCSHandler) GetLatestInfo(path string) (*internal.Module, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLatestInfo", arg0)
+	ret := m.ctrl.Call(m, "GetLatestInfo", path)
 	ret0, _ := ret[0].(*internal.Module)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLatestInfo indicates an expected call of GetLatestInfo.
-func (mr *MockVCSHandlerMockRecorder) GetLatestInfo(arg0 any) *MockVCSHandlerGetLatestInfoCall {
+func (mr *MockVCSHandlerMockRecorder) GetLatestInfo(path any) *MockVCSHandlerGetLatestInfoCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestInfo", reflect.TypeOf((*MockVCSHandler)(nil).GetLatestInfo), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestInfo", reflect.TypeOf((*MockVCSHandler)(nil).GetLatestInfo), path)
 	return &MockVCSHandlerGetLatestInfoCall{Call: call}
 }
 
@@ -159,18 +159,18 @@ func (c *MockVCSHandlerGetLatestInfoCall) DoAndReturn(f func(string) (*internal.
 }
 
 // GetModFile mocks base method.
-func (m *MockVCSHandler) GetModFile(arg0 string, arg1 *semver.Version) ([]byte, error) {
+func (m *MockVCSHandler) GetModFile(path string, version *semver.Version) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetModFile", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetModFile", path, version)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetModFile indicates an expected call of GetModFile.
-func (mr *MockVCSHandlerMockRecorder) GetModFile(arg0, arg1 any) *MockVCSHandlerGetModFileCall {
+func (mr *MockVCSHandlerMockRecorder) GetModFile(path, version any) *MockVCSHandlerGetModFileCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModFile", reflect.TypeOf((*MockVCSHandler)(nil).GetModFile), arg0, arg1)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModFile", reflect.TypeOf((*MockVCSHandler)(nil).GetModFile), path, version)
 	return &MockVCSHandlerGetModFileCall{Call: call}
 }
 
@@ -198,18 +198,18 @@ func (c *MockVCSHandlerGetModFileCall) DoAndReturn(f func(string, *semver.Versio
 }
 
 // GetVersions mocks base method.
-func (m *MockVCSHandler) GetVersions(arg0 string) ([]*semver.Version, error) {
+func (m *MockVCSHandler) GetVersions(path string) ([]*semver.Version, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVersions", arg0)
+	ret := m.ctrl.Call(m, "GetVersions", path)
 	ret0, _ := ret[0].([]*semver.Version)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVersions indicates an expected call of GetVersions.
-func (mr *MockVCSHandlerMockRecorder) GetVersions(arg0 any) *MockVCSHandlerGetVersionsCall {
+func (mr *MockVCSHandlerMockRecorder) GetVersions(path any) *MockVCSHandlerGetVersionsCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersions", reflect.TypeOf((*MockVCSHandler)(nil).GetVersions), arg0)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersions", reflect.TypeOf((*MockVCSHandler)(nil).GetVersions), path)
 	return &MockVCSHandlerGetVersionsCall{Call: call}
 }
 

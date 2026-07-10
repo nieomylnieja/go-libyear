@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 )
 
 func NewGoProxyClient(useCache bool, cacheFilePath string) (*GoProxyClient, error) {
@@ -28,7 +27,7 @@ func NewGoProxyClient(useCache bool, cacheFilePath string) (*GoProxyClient, erro
 	if proxyURL, isSet := os.LookupEnv("GOPROXY"); isSet {
 		u, err := url.Parse(proxyURL)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to parse $GOPROXY url")
+			return nil, fmt.Errorf("failed to parse $GOPROXY url: %w", err)
 		}
 		apiURL = *u
 	}
@@ -128,7 +127,7 @@ func (c *GoProxyClient) query(urlPath string) ([]byte, error) {
 	}
 	if resp.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(resp.Body)
-		return nil, errors.Errorf(
+		return nil, fmt.Errorf(
 			"unexpected response status code from %s %s: %d, body: %s",
 			http.MethodGet, resp.Request.URL.String(), resp.StatusCode, string(data))
 	}

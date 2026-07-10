@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 )
 
 func NewDepsDevClient() *DepsDevClient {
@@ -38,7 +38,7 @@ func (c DepsDevClient) GetVersions(path string) ([]*semver.Version, error) {
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(resp.Body)
-		return nil, errors.Errorf(
+		return nil, fmt.Errorf(
 			"unexpected response status code: %d, body: %s",
 			resp.StatusCode, string(data))
 	}

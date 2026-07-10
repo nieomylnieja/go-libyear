@@ -1,0 +1,81 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+categories:
+  - title: ⚠️  Breaking Changes
+    labels:
+      - breaking-change
+  - title: 🚀 Features
+    labels:
+      - enhancement
+  - title: 💻 Fixed Vulnerabilities
+    labels:
+      - security
+  - title: 🐞 Bug Fixes
+    labels:
+      - bug
+  - title: 🧰 Maintenance
+    collapse-after: 3
+    labels:
+      - chore
+      - infrastructure
+      - dependencies
+      - test
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-title-escapes: '\<*_&'
+version-resolver:
+  major:
+    labels:
+      - major
+  minor:
+    labels:
+      - minor
+      - breaking-change
+  patch:
+    labels:
+      - patch
+  default: patch
+autolabeler:
+  - label: enhancement
+    title:
+      - "/^feat:/i"
+  - label: chore
+    title:
+      - "/^chore:/i"
+  - label: infrastructure
+    title:
+      - "/^infra:/i"
+  - label: security
+    title:
+      - "/^sec:/i"
+  - label: bug
+    title:
+      - "/^fix:/i"
+  - label: documentation
+    title:
+      - "/^doc:/i"
+  - label: test
+    title:
+      - "/^test:/i"
+  - label: breaking-change
+    body:
+      - "/^## Breaking Changes/im"
+  - label: minor
+    title:
+      - "/^feat:/i"
+  - label: patch
+    title:
+      - "/^fix:/i"
+      - "/^sec:/i"
+      - "/^chore:/i"
+      - "/^infra:/i"
+      - "/^doc:/i"
+      - "/^test:/i"
+    branch:
+      - "/^renovate_/"
+replacers:
+  - search: "/# What's Changed.*?\\n## /s"
+    replace: "# What's Changed\n\n## "
+template: |
+  # What's Changed
+
+  $CHANGES

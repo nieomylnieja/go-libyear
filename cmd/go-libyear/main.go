@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	golibyear "github.com/nieomylnieja/go-libyear"
 	"github.com/nieomylnieja/go-libyear/internal"
 
-	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -153,7 +153,7 @@ func validateArgs(cliCtx *cli.Context, stdinUsed bool) error {
 		return errors.New("invalid number of arguments provided, expected a single argument, path to go.mod")
 	}
 	if stdinUsed && (cliCtx.NArg() != 0 || cliCtx.IsSet(flagURL.Name) || cliCtx.IsSet(flagPkg.Name)) {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"when reading go.mod from stdin no arguments or output related flags should be provided")
 	}
 
@@ -184,7 +184,7 @@ func validateFlagsMutualExclusion(cliCtx *cli.Context, flags []string) error {
 			continue
 		}
 		if flagSet != "" {
-			return errors.Errorf("use either --%s or --%s flag, but not both", flagSet, flag)
+			return fmt.Errorf("use either --%s or --%s flag, but not both", flagSet, flag)
 		}
 		flagSet = flag
 	}

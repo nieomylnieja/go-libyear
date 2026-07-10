@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "allowCompoundWords": true,
+  "language": "en_US",
+  "dictionaries": [
+    "misc",
+    "softwareTerms",
+    "go",
+    "bash",
+    "typescript",
+    "node",
+    "npm"
+  ],
+  "ignoreRegExpList": [
+    "/\\|\\s+[T|G]{2,}\\s+\\|/g",
+    "/https?:\\/\\/.*/g",
+    "/github.*/g",
+    "/nolint.*/g",
+    "/nosec.*/g"
+  ],
+  "ignorePaths": [
+    "cspell.json",
+    ".golangci.yml",
+    "**/*.lock",
+    "**/go.mod",
+    "**/go.sum",
+    "**/node_modules/**",
+    "CODEOWNERS",
+    "bin/**",
+    "test/**"
+  ],
+  "words": [
+    "bats",
+    "devbox",
+    "distroless",
+    "gobin",
+    "goenv",
+    "gofumpt",
+    "gomaxprocs",
+    "goimports",
+    "golangci",
+    "golibyear",
+    "golines",
+    "gomock",
+    "goreleaser",
+    "goroot",
+    "gosec",
+    "gotools",
+    "govulncheck",
+    "isgomock",
+    "ldflags",
+    "libyear",
+    "nieomylnieja",
+    "prerelease",
+    "vuln",
+    "vulns"
+  ]
+}

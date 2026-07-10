@@ -1,4 +1,6 @@
 name: Scan vulnerabilities
+run-name: "Scan vulnerabilities for ${{ github.repository }} by @${{ github.actor }}"
+
 on:
   schedule:
     # Run at 8:00 AM every weekday.
@@ -8,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install devbox
-        uses: jetpack-io/devbox-install-action@v0.13.0
+        uses: jetpack-io/devbox-install-action@v0.15.0
         with:
           enable-cache: true
       - name: Run Golang Vulncheck
-        run: devbox run -- make check/vulns
+        run: devbox run -- just check-vulnerabilities

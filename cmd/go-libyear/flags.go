@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
 	golibyear "github.com/nieomylnieja/go-libyear"
@@ -130,7 +129,7 @@ var (
 func useOnlyWith[T any](this, dependent string) func(*cli.Context, T) error {
 	return func(ctx *cli.Context, _ T) error {
 		if !ctx.IsSet(dependent) {
-			return errors.Errorf("--%s flag can only be used in conjunction with --%s", this, dependent)
+			return fmt.Errorf("--%s flag can only be used in conjunction with --%s", this, dependent)
 		}
 		return nil
 	}

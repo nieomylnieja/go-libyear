@@ -1,0 +1,41 @@
+name: Release draft
+run-name: "Update release draft from ${{ github.ref_name }} by @${{ github.actor }}"
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  update_release_draft:
+    permissions:
+      # write permission is required to create a github release
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.drafter.outputs.tag_name }}
+    steps:
+      # Drafts your next Release notes as Pull Requests are merged into "main"
+      - id: drafter
+        uses: release-drafter/release-drafter@v7
+        with:
+          token: ${{ secrets.RELEASE_DRAFTER_TOKEN }}
+
+  update_release_notes:
+    needs: update_release_draft
+    permissions:
+      # write permission is required to edit the github release
+      contents: write
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.RELEASE_DRAFTER_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Add release notes to the draft
+        run: .github/scripts/release-notes.bash ${{ needs.update_release_draft.outputs.tag_name }}
