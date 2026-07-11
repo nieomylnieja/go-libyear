@@ -12,6 +12,7 @@ package mocks
 import (
 	io "io"
 	reflect "reflect"
+	time "time"
 
 	gomock "go.uber.org/mock/gomock"
 )
@@ -151,6 +152,46 @@ func (c *MockGitCmdIGetHeadBranchNameCall) Do(f func(string) (string, error)) *M
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockGitCmdIGetHeadBranchNameCall) DoAndReturn(f func(string) (string, error)) *MockGitCmdIGetHeadBranchNameCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetHeadInfo mocks base method.
+func (m *MockGitCmdI) GetHeadInfo(path string) (string, time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHeadInfo", path)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(time.Time)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetHeadInfo indicates an expected call of GetHeadInfo.
+func (mr *MockGitCmdIMockRecorder) GetHeadInfo(path any) *MockGitCmdIGetHeadInfoCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeadInfo", reflect.TypeOf((*MockGitCmdI)(nil).GetHeadInfo), path)
+	return &MockGitCmdIGetHeadInfoCall{Call: call}
+}
+
+// MockGitCmdIGetHeadInfoCall wrap *gomock.Call
+type MockGitCmdIGetHeadInfoCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockGitCmdIGetHeadInfoCall) Return(arg0 string, arg1 time.Time, arg2 error) *MockGitCmdIGetHeadInfoCall {
+	c.Call = c.Call.Return(arg0, arg1, arg2)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockGitCmdIGetHeadInfoCall) Do(f func(string) (string, time.Time, error)) *MockGitCmdIGetHeadInfoCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockGitCmdIGetHeadInfoCall) DoAndReturn(f func(string) (string, time.Time, error)) *MockGitCmdIGetHeadInfoCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
