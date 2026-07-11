@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"golang.org/x/mod/module"
 )
 
 //go:generate go tool mockgen -destination mocks/git.go -package mocks -typed . GitCmdI
@@ -47,9 +48,10 @@ type GitHandler struct {
 // If we ever need to support concurrent access to a single gitRepo,
 // a mutex will have to guard access to tags slice.
 type gitRepo struct {
-	URL     string
-	DirPath string
-	tags    []gitTag
+	URL       string
+	DirPath   string
+	tagPrefix string
+	tags      []gitTag
 }
 
 type gitTag struct {
@@ -76,8 +78,9 @@ func (g *GitHandler) CanHandle(path string) (bool, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	repo := &gitRepo{
-		URL:     "https://" + root + ".git",
-		DirPath: filepath.Join(g.cacheDir, path),
+		URL:       "https://" + root + ".git",
+		DirPath:   filepath.Join(g.cacheDir, path),
+		tagPrefix: gitTagPrefix(root, path),
 	}
 	if err := g.initializeRepo(path, repo); err != nil {
 		return false, err
@@ -106,7 +109,11 @@ func (g *GitHandler) GetVersions(path string) ([]*semver.Version, error) {
 func (g *GitHandler) GetModFile(path string, version *semver.Version) ([]byte, error) {
 	moduleNameRegexp := regexp.MustCompile(fmt.Sprintf(`(?m)^module %s$`, path))
 	repo := g.getRepoForPath(path)
-	if err := g.git.Checkout(repo.DirPath, version.Original()); err != nil {
+	ref, err := repo.refForVersion(version)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.git.Checkout(repo.DirPath, ref); err != nil {
 		return nil, fmt.Errorf("failed to checkout version %s of %s: %w", version.Original(), path, err)
 	}
 	root, err := os.OpenRoot(repo.DirPath)
@@ -147,6 +154,13 @@ func (g *GitHandler) GetModFile(path string, version *semver.Version) ([]byte, e
 
 func (g *GitHandler) GetInfo(path string, version *semver.Version) (*Module, error) {
 	repo := g.getRepoForPath(path)
+	if module.IsPseudoVersion(version.Original()) {
+		info, err := g.getPseudoVersionInfo(repo, path, version)
+		if err != nil {
+			return nil, err
+		}
+		return info, nil
+	}
 	tags, err := g.listAllTags(repo)
 	if err != nil {
 		return nil, err
@@ -168,6 +182,9 @@ func (g *GitHandler) GetLatestInfo(path string) (*Module, error) {
 	tags, err := g.listAllTags(repo)
 	if err != nil {
 		return nil, err
+	}
+	if len(tags) == 0 {
+		return nil, fmt.Errorf("no versions found for path %s", path)
 	}
 	latestTag := tags[len(tags)-1]
 	return &Module{
@@ -197,6 +214,30 @@ func (g *GitHandler) initializeRepo(path string, repo *gitRepo) error {
 	return g.git.Pull(repo.DirPath)
 }
 
+func (g *GitHandler) getPseudoVersionInfo(
+	repo *gitRepo,
+	path string,
+	version *semver.Version,
+) (*Module, error) {
+	versionOriginal := version.Original()
+	revision, err := module.PseudoVersionRev(versionOriginal)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.git.Checkout(repo.DirPath, revision); err != nil {
+		return nil, fmt.Errorf("failed to checkout revision %s of %s: %w", revision, path, err)
+	}
+	versionTime, err := module.PseudoVersionTime(versionOriginal)
+	if err != nil {
+		return nil, err
+	}
+	return &Module{
+		Path:    path,
+		Version: version,
+		Time:    versionTime,
+	}, nil
+}
+
 func (g *GitHandler) listAllTags(repo *gitRepo) ([]gitTag, error) {
 	if len(repo.tags) > 0 {
 		return repo.tags, nil
@@ -217,8 +258,8 @@ func (g *GitHandler) listAllTags(repo *gitRepo) ([]gitTag, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date for line: %s: %w", line, err)
 		}
-		version, err := semver.NewVersion(split[1])
-		if err != nil {
+		version, ok := repo.versionFromTag(split[1])
+		if !ok {
 			continue
 		}
 		tags = append(tags, gitTag{
@@ -232,4 +273,38 @@ func (g *GitHandler) listAllTags(repo *gitRepo) ([]gitTag, error) {
 	sort.Slice(tags, func(i, j int) bool { return tags[i].Version.LessThan(tags[j].Version) })
 	repo.tags = tags
 	return tags, nil
+}
+
+func (r *gitRepo) refForVersion(version *semver.Version) (string, error) {
+	versionOriginal := version.Original()
+	if module.IsPseudoVersion(versionOriginal) {
+		return module.PseudoVersionRev(versionOriginal)
+	}
+	return r.tagPrefix + versionOriginal, nil
+}
+
+func (r *gitRepo) versionFromTag(tag string) (*semver.Version, bool) {
+	if r.tagPrefix != "" {
+		if !strings.HasPrefix(tag, r.tagPrefix) {
+			return nil, false
+		}
+		tag = strings.TrimPrefix(tag, r.tagPrefix)
+	} else if strings.Contains(tag, "/") {
+		return nil, false
+	}
+	version, err := semver.NewVersion(tag)
+	return version, err == nil
+}
+
+func gitTagPrefix(root, modulePath string) string {
+	modulePrefix, _, ok := module.SplitPathVersion(modulePath)
+	if !ok {
+		modulePrefix = modulePath
+	}
+	subdir := strings.TrimPrefix(modulePrefix, root)
+	subdir = strings.TrimPrefix(subdir, "/")
+	if subdir == "" {
+		return ""
+	}
+	return subdir + "/"
 }
