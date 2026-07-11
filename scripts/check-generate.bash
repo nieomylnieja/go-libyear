@@ -1,45 +1,30 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -e
 
-tmp_dir=$(mktemp -d)
-repo_dir="$tmp_dir/repo"
+GEN_PATHS="**/*.go **/*.yaml **/*.json"
+TMP_DIR=$(mktemp -d)
 
-trap 'rm -rf "$tmp_dir"' EXIT
+trap "rm -rf '$TMP_DIR'" EXIT
 
-copy_worktree() {
-  mkdir -p "$repo_dir"
-
-  while IFS= read -r -d '' file; do
-    if [[ ! -e "$file" ]]; then
-      continue
-    fi
-
-    mkdir -p "$repo_dir/$(dirname "$file")"
-    cp -Pp -- "$file" "$repo_dir/$file"
-  done < <(git ls-files --cached --others --exclude-standard -z)
+cleanup_git() {
+  git -C "$TMP_DIR" clean -df
+  git -C "$TMP_DIR" checkout -- .
 }
 
 main() {
-  copy_worktree
-  git -C "$repo_dir" init --quiet
-  git -C "$repo_dir" add --all
+  cp -r . "$TMP_DIR"
+  cleanup_git
 
-  GIT_TAG=check-generate BUILD_DATE=1970-01-01 \
-    just --justfile "$repo_dir/justfile" --working-directory "$repo_dir" generate
+  just --justfile "$TMP_DIR/justfile" --working-directory "$TMP_DIR" generate
 
-  changed=$(git -C "$repo_dir" diff --name-status -- '*.go' '*.yaml' '*.json')
-  untracked=$(git -C "$repo_dir" ls-files --others --exclude-standard -- '*.go' '*.yaml' '*.json')
-  if [[ -n "$untracked" ]]; then
-    changed+=$'\n'
-    changed+="$untracked"
-  fi
-  if [[ -n "$changed" ]]; then
-    printf >&2 "There are generated changes that are not committed:\n%s\n" "$changed"
+  CHANGED=$(git -C "$TMP_DIR" status --porcelain ${GEN_PATHS})
+  if [ -n "${CHANGED}" ]; then
+    printf >&2 "There are generated changes that are not committed:\n%s\n" "$CHANGED"
     exit 1
+  else
+    echo "Looks good!"
   fi
-
-  echo "Looks good!"
 }
 
 main "$@"
