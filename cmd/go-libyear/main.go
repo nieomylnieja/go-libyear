@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -77,6 +78,13 @@ func run(cliCtx *cli.Context) error {
 
 	var source golibyear.Source
 	sourceArg := cliCtx.Args().Get(0)
+	if sourceArg == "" && !stdinUsed {
+		var err error
+		sourceArg, err = defaultGoModPath()
+		if err != nil {
+			return err
+		}
+	}
 	switch {
 	case cliCtx.IsSet(flagPkg.Name):
 		source = &golibyear.PkgSource{Pkg: sourceArg}
@@ -149,12 +157,15 @@ func setupContextHandling(cliCtx *cli.Context) (ctx context.Context, handler fun
 }
 
 func validateArgs(cliCtx *cli.Context, stdinUsed bool) error {
-	if cliCtx.NArg() != 1 && !stdinUsed {
-		return errors.New("invalid number of arguments provided, expected a single argument, path to go.mod")
-	}
 	if stdinUsed && (cliCtx.NArg() != 0 || cliCtx.IsSet(flagURL.Name) || cliCtx.IsSet(flagPkg.Name)) {
 		return fmt.Errorf(
 			"when reading go.mod from stdin no arguments or output related flags should be provided")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("invalid number of arguments provided, expected at most one argument, path to go.mod")
+	}
+	if !stdinUsed && cliCtx.NArg() == 0 && (cliCtx.IsSet(flagURL.Name) || cliCtx.IsSet(flagPkg.Name)) {
+		return errors.New("invalid number of arguments provided, expected a source argument")
 	}
 
 	for _, flags := range [][]string{
@@ -167,6 +178,58 @@ func validateArgs(cliCtx *cli.Context, stdinUsed bool) error {
 		}
 	}
 	return nil
+}
+
+func defaultGoModPath() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return findGoModPath(wd)
+}
+
+func findGoModPath(start string) (string, error) {
+	dir, err := filepath.Abs(start)
+	if err != nil {
+		return "", fmt.Errorf("resolve absolute path for %s: %w", start, err)
+	}
+	for {
+		goModPath := filepath.Join(dir, "go.mod")
+		info, err := os.Stat(goModPath)
+		switch {
+		case err == nil && info.IsDir():
+			return "", fmt.Errorf("%s is a directory, expected go.mod file", goModPath)
+		case err == nil:
+			return goModPath, nil
+		case !errors.Is(err, os.ErrNotExist):
+			return "", fmt.Errorf("stat %s: %w", goModPath, err)
+		}
+
+		gitBoundary, err := isGitBoundary(dir)
+		if err != nil {
+			return "", err
+		}
+		if gitBoundary {
+			return "", fmt.Errorf("could not find go.mod before reaching git boundary at %s", dir)
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("could not find go.mod from %s or any parent directory", start)
+		}
+		dir = parent
+	}
+}
+
+func isGitBoundary(dir string) (bool, error) {
+	gitPath := filepath.Join(dir, ".git")
+	if _, err := os.Stat(gitPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, fmt.Errorf("stat %s: %w", gitPath, err)
+	}
+	return true, nil
 }
 
 func isStdinUsed() bool {

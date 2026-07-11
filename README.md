@@ -21,7 +21,7 @@ It can also be built directly from this repository:
 git clone https://github.com/nieomylnieja/go-libyear.git
 cd go-libyear
 just build
-./bin/go-libyear ./go.mod
+./bin/go-libyear
 ```
 
 ### Docker
@@ -43,7 +43,7 @@ and accessed through `go-libyear --help`.
 Basic usage:
 
 ```shell
-$ go-libyear /path/to/go.mod
+$ go-libyear
 package                             version  date        latest   latest_date  libyear
 github.com/nieomylnieja/go-libyear           2023-11-06                        2.41
 github.com/Masterminds/semver       v1.4.2   2019-04-07  v1.5.0   2021-09-14   2.44
@@ -128,7 +128,7 @@ Example:
 
 | Source      | Flag      | Example                                                                                                         |
 |-------------|-----------|-----------------------------------------------------------------------------------------------------------------|
-| File path   | _default_ | ~/my-project/go.mod                                                                                             |
+| File path   | _default_ | Omit to discover the nearest `go.mod` before the Git boundary, or pass `~/my-project/go.mod`.                   |
 | URL         | `--url`   | https://raw.githubusercontent.com/nieomylnieja/go-libyear/main/go.mod  <!-- markdownlint-disable-line MD034 --> |
 | Module path | `--pkg`   | github.com/nieomylnieja/go-libyear@latest                                                                       |
 

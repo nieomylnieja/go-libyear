@@ -1,11 +1,12 @@
-go-libyear [flags] <path>
+go-libyear [flags] [path]
 
 Calculate Go module's libyear!
 
 There are multiple ways to parse selected go.mod file.
 Reading go.mod from the following sources is supported:
   - file [default]: file path to a go.mod file
-    example: ./go.mod, /home/user/project/go.mod
+    if omitted, go-libyear searches from the current directory upward until it finds go.mod or reaches a Git boundary
+    example: go-libyear, go-libyear ./go.mod, go-libyear /home/user/project/go.mod
   - url: URL from which to fetch the file; the request is a simple GET
     example: https://raw.githubusercontent.com/nieomylnieja/go-libyear/main/go.mod
   - pkg: Go pkg name; if no version is provided, @latest will be appended to the name
