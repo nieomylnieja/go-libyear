@@ -16,6 +16,7 @@ type ModuleSpinner struct {
 	total     int
 	completed int
 	module    string
+	startedAt time.Time
 	stop      chan struct{}
 	wg        sync.WaitGroup
 	mu        sync.Mutex
@@ -35,12 +36,14 @@ func (s *ModuleSpinner) Start(total int) {
 	s.total = total
 	s.completed = 0
 	s.module = ""
+	s.startedAt = time.Now()
 	s.stop = make(chan struct{})
 	stop := s.stop
 	s.bar = progressbar.NewOptions(-1,
 		progressbar.OptionSetDescription(s.description(0)),
 		progressbar.OptionSetWriter(s.writer),
 		progressbar.OptionClearOnFinish(),
+		progressbar.OptionSetElapsedTime(false),
 		progressbar.OptionSpinnerType(14))
 	s.mu.Unlock()
 
@@ -107,6 +110,7 @@ func (s *ModuleSpinner) spin(stop <-chan struct{}) {
 		case <-ticker.C:
 			s.mu.Lock()
 			if s.bar != nil {
+				s.bar.Describe(s.description(s.completed))
 				_ = s.bar.Add(1)
 			}
 			s.mu.Unlock()
@@ -117,8 +121,9 @@ func (s *ModuleSpinner) spin(stop <-chan struct{}) {
 }
 
 func (s *ModuleSpinner) description(completed int) string {
+	elapsed := time.Since(s.startedAt).Truncate(time.Second)
 	if s.module != "" {
-		return fmt.Sprintf("Scanning %d/%d modules: %s", completed, s.total, s.module)
+		return fmt.Sprintf("Scanning %d/%d modules [%s]: %s", completed, s.total, elapsed, s.module)
 	}
-	return fmt.Sprintf("Scanning %d/%d modules", completed, s.total)
+	return fmt.Sprintf("Scanning %d/%d modules [%s]", completed, s.total, elapsed)
 }

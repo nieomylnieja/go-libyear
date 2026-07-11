@@ -19,6 +19,7 @@ func TestModuleSpinner_FinishClearsProgressLine(t *testing.T) {
 	spinner.Finish()
 
 	actual := output.String()
-	assert.Contains(t, actual, "Scanning 1/1 modules: example.com/module")
-	assert.Regexp(t, regexp.MustCompile(`Scanning 1/1 modules: example\.com/module.*\r +\r$`), actual)
+	assert.Regexp(t, regexp.MustCompile(`Scanning 1/1 modules \[[^]]+\]: example\.com/module`), actual)
+	assert.NotRegexp(t, regexp.MustCompile(`example\.com/module\s+\[[^]]+\]`), actual)
+	assert.Regexp(t, regexp.MustCompile(`Scanning 1/1 modules \[[^]]+\]: example\.com/module.*\r +\r$`), actual)
 }
