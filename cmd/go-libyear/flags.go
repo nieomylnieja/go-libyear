@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	golibyear "github.com/nieomylnieja/go-libyear"
 )
@@ -53,18 +54,20 @@ var (
 		Usage:    "Use cache",
 		Category: categoryCache,
 	}
-	flagCacheFilePath = &cli.PathFlag{
+	flagCacheFilePath = &cli.StringFlag{
 		Name:        "cache-file-path",
 		Usage:       "Use custom cache file path",
 		DefaultText: "$XDG_CACHE_HOME/go-libyear/modules or $HOME/.cache/go-libyear/modules",
 		Category:    categoryCache,
-		Action:      useOnlyWith[cli.Path]("cache-file-path", flagCache.Name),
+		TakesFile:   true,
+		Action:      useOnlyWith[string]("cache-file-path", flagCache.Name),
 	}
-	flagVCSCacheDir = &cli.PathFlag{
+	flagVCSCacheDir = &cli.StringFlag{
 		Name:        "vcs-cache-dir",
 		Usage:       "Use custom cache directory for VCS modules (downloaded due to GOPRIVATE settings)",
 		DefaultText: "$XDG_CACHE_HOME/go-libyear/vcs or $HOME/.cache/go-libyear/vcs",
 		Category:    categoryCache,
+		TakesFile:   true,
 	}
 	flagTimeout = &cli.DurationFlag{
 		Name:    "timeout",
@@ -109,15 +112,17 @@ var (
 		Action: useOnlyWith[bool]("no-libyear-compensation", flagFindLatestMajor.Name),
 	}
 	flagAgeLimit = &cli.TimestampFlag{
-		Name:   "age-limit",
-		Layout: time.RFC3339,
-		Usage:  "Only consider versions which were published before or at the specified date",
+		Name:  "age-limit",
+		Usage: "Only consider versions which were published before or at the specified date",
+		Config: cli.TimestampConfig{
+			Layouts: []string{time.RFC3339},
+		},
 	}
 	flagVersion = &cli.BoolFlag{
 		Name:    "version",
 		Aliases: []string{"v"},
 		Usage:   "Show the program version",
-		Action: func(_ *cli.Context, _ bool) error {
+		Action: func(context.Context, *cli.Command, bool) error {
 			fmt.Printf("Version: %s\nGitTag: %s\nBuildDate: %s\n",
 				BuildVersion, BuildGitTag, BuildDate)
 			return nil
@@ -126,9 +131,9 @@ var (
 )
 
 // useOnlyWith creates an action which will verify if this flag was used with the dependent flag.
-func useOnlyWith[T any](this, dependent string) func(*cli.Context, T) error {
-	return func(ctx *cli.Context, _ T) error {
-		if !ctx.IsSet(dependent) {
+func useOnlyWith[T any](this, dependent string) func(context.Context, *cli.Command, T) error {
+	return func(_ context.Context, cmd *cli.Command, _ T) error {
+		if !cmd.IsSet(dependent) {
 			return fmt.Errorf("--%s flag can only be used in conjunction with --%s", this, dependent)
 		}
 		return nil

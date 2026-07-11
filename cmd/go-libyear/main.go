@@ -16,7 +16,7 @@ import (
 	golibyear "github.com/nieomylnieja/go-libyear"
 	"github.com/nieomylnieja/go-libyear/internal"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // Set by build ldflags.
@@ -31,11 +31,14 @@ var usageText string
 
 func main() {
 	log.SetOutput(os.Stderr)
-	app := &cli.App{
+	cmd := &cli.Command{
 		Usage:     "Calculate Go module's libyear!",
 		UsageText: usageText,
 		Action:    run,
 		Name:      internal.ProgramName,
+		OnUsageError: func(_ context.Context, _ *cli.Command, err error, _ bool) error {
+			return fmt.Errorf("parse error: %w", err)
+		},
 		Flags: []cli.Flag{
 			flagURL,
 			flagPkg,
@@ -57,27 +60,27 @@ func main() {
 		},
 		Suggest: true,
 	}
-	if err := app.Run(os.Args); err != nil {
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(cliCtx *cli.Context) error {
-	if cliCtx.IsSet(flagVersion.Name) {
+func run(ctx context.Context, cliCmd *cli.Command) error {
+	if cliCmd.IsSet(flagVersion.Name) {
 		return nil
 	}
 
-	ctx, watch := setupContextHandling(cliCtx)
+	ctx, watch := setupContextHandling(ctx, cliCmd)
 	go watch()
 
 	stdinUsed := isStdinUsed()
-	if err := validateArgs(cliCtx, stdinUsed); err != nil {
+	if err := validateArgs(cliCmd, stdinUsed); err != nil {
 		return err
 	}
 
 	var source golibyear.Source
-	sourceArg := cliCtx.Args().Get(0)
+	sourceArg := cliCmd.Args().Get(0)
 	if sourceArg == "" && !stdinUsed {
 		var err error
 		sourceArg, err = defaultGoModPath()
@@ -86,9 +89,9 @@ func run(cliCtx *cli.Context) error {
 		}
 	}
 	switch {
-	case cliCtx.IsSet(flagPkg.Name):
+	case cliCmd.IsSet(flagPkg.Name):
 		source = &golibyear.PkgSource{Pkg: sourceArg}
-	case cliCtx.IsSet(flagURL.Name):
+	case cliCmd.IsSet(flagURL.Name):
 		source = golibyear.URLSource{RawURL: sourceArg, HTTP: http.Client{Timeout: 10 * time.Second}}
 	case stdinUsed:
 		source = golibyear.StdinSource{}
@@ -98,29 +101,29 @@ func run(cliCtx *cli.Context) error {
 
 	var output golibyear.Output
 	switch {
-	case cliCtx.IsSet(flagJSON.Name):
+	case cliCmd.IsSet(flagJSON.Name):
 		output = golibyear.JSONOutput{}
-	case cliCtx.IsSet(flagCSV.Name):
+	case cliCmd.IsSet(flagCSV.Name):
 		output = golibyear.CSVOutput{}
 	default:
 		output = golibyear.TableOutput{}
 	}
 
 	builder := golibyear.NewCommandBuilder(source, output)
-	if cliCtx.IsSet(flagCache.Name) {
-		builder = builder.WithCache(flagCacheFilePath.Get(cliCtx))
+	if cliCmd.IsSet(flagCache.Name) {
+		builder = builder.WithCache(cliCmd.String(flagCacheFilePath.Name))
 	}
 	for flag, option := range flagToOption {
-		if cliCtx.IsSet(flag) {
+		if cliCmd.IsSet(flag) {
 			builder = builder.WithOptions(option)
 		}
 	}
-	if cliCtx.IsSet(flagVCSCacheDir.Name) {
-		registry := golibyear.NewVCSRegistry(flagVCSCacheDir.Get(cliCtx))
+	if cliCmd.IsSet(flagVCSCacheDir.Name) {
+		registry := golibyear.NewVCSRegistry(cliCmd.String(flagVCSCacheDir.Name))
 		builder = builder.WithVCSRegistry(registry)
 	}
-	if cliCtx.IsSet(flagAgeLimit.Name) {
-		builder = builder.WithAgeLimit(*flagAgeLimit.Get(cliCtx))
+	if cliCmd.IsSet(flagAgeLimit.Name) {
+		builder = builder.WithAgeLimit(cliCmd.Timestamp(flagAgeLimit.Name))
 	}
 	if progress := newModuleProgress(); progress != nil {
 		builder = builder.WithModuleProgress(progress)
@@ -133,41 +136,40 @@ func run(cliCtx *cli.Context) error {
 	return cmd.Run(ctx)
 }
 
-func setupContextHandling(cliCtx *cli.Context) (ctx context.Context, handler func()) {
-	ctx = cliCtx.Context
+func setupContextHandling(ctx context.Context, cliCmd *cli.Command) (handledCtx context.Context, handler func()) {
 	errTimeout := errors.New("timeout")
-	timeout := flagTimeout.Get(cliCtx)
-	ctx, cancel := context.WithTimeoutCause(ctx, timeout, errTimeout)
+	timeout := cliCmd.Duration(flagTimeout.Name)
+	handledCtx, cancel := context.WithTimeoutCause(ctx, timeout, errTimeout)
 	sigCh := make(chan os.Signal, 2)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	return ctx, func() {
+	return handledCtx, func() {
 		select {
 		case sig := <-sigCh:
 			cancel()
 			fmt.Fprintf(os.Stderr, "\r%s signal detected, shutting down...\n", sig)
 			os.Exit(0)
-		case <-ctx.Done():
-			cause := context.Cause(ctx)
+		case <-handledCtx.Done():
+			cause := context.Cause(handledCtx)
 			if errors.Is(cause, errTimeout) {
 				fmt.Fprintf(os.Stderr,
 					"\r%s timeout exceeded, consider increasing the timeout value via --timeout flag\n", timeout)
 			} else {
-				fmt.Fprintf(os.Stderr, "\r%s, shutting down...\n", ctx.Err())
+				fmt.Fprintf(os.Stderr, "\r%s, shutting down...\n", handledCtx.Err())
 			}
 			os.Exit(1)
 		}
 	}
 }
 
-func validateArgs(cliCtx *cli.Context, stdinUsed bool) error {
-	if stdinUsed && (cliCtx.NArg() != 0 || cliCtx.IsSet(flagURL.Name) || cliCtx.IsSet(flagPkg.Name)) {
+func validateArgs(cliCmd *cli.Command, stdinUsed bool) error {
+	if stdinUsed && (cliCmd.NArg() != 0 || cliCmd.IsSet(flagURL.Name) || cliCmd.IsSet(flagPkg.Name)) {
 		return fmt.Errorf(
 			"when reading go.mod from stdin no arguments or output related flags should be provided")
 	}
-	if cliCtx.NArg() > 1 {
+	if cliCmd.NArg() > 1 {
 		return errors.New("invalid number of arguments provided, expected at most one argument, path to go.mod")
 	}
-	if !stdinUsed && cliCtx.NArg() == 0 && (cliCtx.IsSet(flagURL.Name) || cliCtx.IsSet(flagPkg.Name)) {
+	if !stdinUsed && cliCmd.NArg() == 0 && (cliCmd.IsSet(flagURL.Name) || cliCmd.IsSet(flagPkg.Name)) {
 		return errors.New("invalid number of arguments provided, expected a source argument")
 	}
 
@@ -176,7 +178,7 @@ func validateArgs(cliCtx *cli.Context, stdinUsed bool) error {
 		{flagCSV.Name, flagJSON.Name},
 		{flagURL.Name, flagPkg.Name},
 	} {
-		if err := validateFlagsMutualExclusion(cliCtx, flags); err != nil {
+		if err := validateFlagsMutualExclusion(cliCmd, flags); err != nil {
 			return err
 		}
 	}
@@ -258,10 +260,10 @@ func isTerminal(file *os.File) bool {
 	return stat.Mode()&os.ModeCharDevice != 0
 }
 
-func validateFlagsMutualExclusion(cliCtx *cli.Context, flags []string) error {
+func validateFlagsMutualExclusion(cliCmd *cli.Command, flags []string) error {
 	var flagSet string
 	for _, flag := range flags {
-		if !cliCtx.IsSet(flag) {
+		if !cliCmd.IsSet(flag) {
 			continue
 		}
 		if flagSet != "" {
