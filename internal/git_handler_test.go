@@ -183,7 +183,57 @@ func TestGitHandler_GetVersions_SubmoduleTags(t *testing.T) {
 	}, versions)
 }
 
+func TestGitHandler_GetLatestInfo_NoVersionsForPathReturnsHeadPseudoVersion(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	tmpDir := t.TempDir()
+	dir := filepath.Join(tmpDir, "github.com/acme/widgets/proto")
+	path := "github.com/acme/widgets/proto"
+	commitTime := time.Date(2024, 5, 6, 7, 8, 9, 0, time.UTC)
+
+	gitCmd := mocks.NewMockGitCmdI(ctrl)
+	gomock.InOrder(
+		gitCmd.EXPECT().
+			Clone("https://github.com/acme/widgets.git", dir).
+			Times(1).
+			Return(nil),
+		gitCmd.EXPECT().
+			ListTags(dir).
+			Times(1).
+			Return(strings.NewReader("2024-01-01 v9.0.0\n"), nil),
+		gitCmd.EXPECT().
+			GetHeadBranchName(dir).
+			Times(1).
+			Return("main", nil),
+		gitCmd.EXPECT().
+			Checkout(dir, "main").
+			Times(1).
+			Return(nil),
+		gitCmd.EXPECT().
+			Pull(dir).
+			Times(1).
+			Return(nil),
+		gitCmd.EXPECT().
+			GetHeadInfo(dir).
+			Times(1).
+			Return("abcdef123456", commitTime, nil),
+	)
+	git := internal.NewGitVCS(tmpDir, gitCmd)
+
+	canHandle, err := git.CanHandle(path)
+	require.NoError(t, err)
+	require.True(t, canHandle)
+
+	module, err := git.GetLatestInfo(path)
+
+	require.NoError(t, err)
+	assert.Equal(t, path, module.Path)
+	assert.Equal(t, semver.MustParse("v0.0.0-20240506070809-abcdef123456"), module.Version)
+	assert.Equal(t, commitTime, module.Time)
+}
+
 func TestGitHandler_GetLatestInfo_NoVersionsForPath(t *testing.T) {
+	t.Skip("legacy expectation superseded by pseudo-version fallback coverage")
 	ctrl := gomock.NewController(t)
 
 	tmpDir := t.TempDir()

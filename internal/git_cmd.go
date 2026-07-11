@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
+	"time"
 )
 
 // GitCmd is a wrapper over git command calls.
@@ -41,6 +43,23 @@ func (g GitCmd) GetHeadBranchName(path string) (string, error) {
 		return "", err
 	}
 	return getHeadBranchName(buf)
+}
+
+func (g GitCmd) GetHeadInfo(path string) (string, time.Time, error) {
+	revision, err := execCmd("git", "-C", path, "rev-parse", "--short=12", "HEAD")
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	commitTime, err := execCmd("git", "-C", path, "show", "-s", "--format=%cI", "HEAD")
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	rawTime := strings.TrimSpace(commitTime.String())
+	parsedTime, err := time.Parse(time.RFC3339, rawTime)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to parse git HEAD commit time %q: %w", rawTime, err)
+	}
+	return strings.TrimSpace(revision.String()), parsedTime, nil
 }
 
 func getHeadBranchName(reader io.Reader) (string, error) {

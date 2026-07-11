@@ -25,6 +25,7 @@ type GitCmdI interface {
 	ListTags(path string) (io.Reader, error)
 	Checkout(path, tag string) error
 	GetHeadBranchName(path string) (string, error)
+	GetHeadInfo(path string) (string, time.Time, error)
 }
 
 func NewGitVCS(cacheDir string, git GitCmdI) *GitHandler {
@@ -51,6 +52,7 @@ type gitRepo struct {
 	URL       string
 	DirPath   string
 	tagPrefix string
+	headRef   string
 	tags      []gitTag
 }
 
@@ -184,7 +186,7 @@ func (g *GitHandler) GetLatestInfo(path string) (*Module, error) {
 		return nil, err
 	}
 	if len(tags) == 0 {
-		return nil, fmt.Errorf("no versions found for path %s", path)
+		return g.getHeadPseudoVersionInfo(repo, path)
 	}
 	latestTag := tags[len(tags)-1]
 	return &Module{
@@ -204,14 +206,48 @@ func (g *GitHandler) initializeRepo(path string, repo *gitRepo) error {
 	if _, statErr := os.Stat(repo.DirPath); os.IsNotExist(statErr) {
 		return g.git.Clone(repo.URL, repo.DirPath)
 	}
-	headBranchName, err := g.git.GetHeadBranchName(repo.DirPath)
-	if err != nil {
-		return err
+	return g.checkoutHeadRef(path, repo)
+}
+
+func (g *GitHandler) checkoutHeadRef(path string, repo *gitRepo) error {
+	if repo.headRef == "" {
+		headBranchName, err := g.git.GetHeadBranchName(repo.DirPath)
+		if err != nil {
+			return err
+		}
+		repo.headRef = headBranchName
 	}
-	if err := g.git.Checkout(repo.DirPath, headBranchName); err != nil {
-		return fmt.Errorf("failed to checkout version %s of %s: %w", headBranchName, path, err)
+	if err := g.git.Checkout(repo.DirPath, repo.headRef); err != nil {
+		return fmt.Errorf("failed to checkout version %s of %s: %w", repo.headRef, path, err)
 	}
 	return g.git.Pull(repo.DirPath)
+}
+
+func (g *GitHandler) getHeadPseudoVersionInfo(repo *gitRepo, path string) (*Module, error) {
+	if err := g.checkoutHeadRef(path, repo); err != nil {
+		return nil, err
+	}
+	revision, commitTime, err := g.git.GetHeadInfo(repo.DirPath)
+	if err != nil {
+		return nil, err
+	}
+	version, err := semver.NewVersion(module.PseudoVersion(pseudoVersionMajor(path), "", commitTime, revision))
+	if err != nil {
+		return nil, err
+	}
+	return &Module{
+		Path:    path,
+		Version: version,
+		Time:    commitTime,
+	}, nil
+}
+
+func pseudoVersionMajor(path string) string {
+	_, pathMajor, ok := module.SplitPathVersion(path)
+	if !ok || pathMajor == "" {
+		return "v0"
+	}
+	return strings.TrimPrefix(pathMajor, "/")
 }
 
 func (g *GitHandler) getPseudoVersionInfo(
