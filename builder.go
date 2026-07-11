@@ -24,6 +24,7 @@ type CommandBuilder struct {
 	opts          Option
 	vcsRegistry   *VCSRegistry
 	ageLimit      time.Time
+	progress      ModuleProgress
 }
 
 func (b CommandBuilder) WithCache(cacheFilePath string) CommandBuilder {
@@ -56,6 +57,12 @@ func (b CommandBuilder) WithVCSRegistry(registry *VCSRegistry) CommandBuilder {
 
 func (b CommandBuilder) WithAgeLimit(limit time.Time) CommandBuilder {
 	b.ageLimit = limit
+	return b
+}
+
+// WithModuleProgress configures progress reporting while dependency modules are scanned.
+func (b CommandBuilder) WithModuleProgress(progress ModuleProgress) CommandBuilder {
+	b.progress = progress
 	return b
 }
 
@@ -98,5 +105,6 @@ func (b CommandBuilder) Build() (*Command, error) {
 		opts:             b.opts,
 		vcs:              b.vcsRegistry,
 		ageLimit:         b.ageLimit,
+		progress:         b.progress,
 	}, nil
 }

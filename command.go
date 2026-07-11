@@ -44,6 +44,14 @@ type VersionsGetter interface {
 	GetVersions(path string) ([]*semver.Version, error)
 }
 
+// ModuleProgress reports dependency module scanning progress.
+// Implementations must be safe for concurrent use.
+type ModuleProgress interface {
+	Start(total int)
+	Advance()
+	Finish()
+}
+
 type Command struct {
 	source           Source
 	output           Output
@@ -52,6 +60,7 @@ type Command struct {
 	opts             Option
 	vcs              *VCSRegistry
 	ageLimit         time.Time
+	progress         ModuleProgress
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -70,13 +79,37 @@ func (c Command) Run(ctx context.Context) error {
 		modules = slices.DeleteFunc(modules, func(module *internal.Module) bool { return module.Indirect })
 	}
 
+	progress := c.progress
+	if progress != nil && len(modules) > 0 {
+		progress.Start(len(modules))
+	} else {
+		progress = nil
+	}
+
 	group, _ := c.newErrGroup(ctx)
 	for _, module := range modules {
 		module := module
-		group.Go(func() error { return c.runForModule(module) })
+		group.Go(func() error {
+			if progress != nil {
+				defer func() {
+					if moduleProgress, ok := progress.(interface{ AdvanceModule(path string) }); ok {
+						moduleProgress.AdvanceModule(module.Path)
+						return
+					}
+					progress.Advance()
+				}()
+			}
+			return c.runForModule(module)
+		})
 	}
 	if err = group.Wait(); err != nil {
+		if progress != nil {
+			progress.Finish()
+		}
 		return err
+	}
+	if progress != nil {
+		progress.Finish()
 	}
 	// Remove skipped modules.
 	if c.optionIsSet(OptionSkipFresh) {
