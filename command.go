@@ -82,7 +82,8 @@ func (c Command) Run(ctx context.Context) error {
 	progress := c.progress
 	if progress != nil && len(modules) > 0 {
 		progress.Start(len(modules))
-		defer progress.Finish()
+	} else {
+		progress = nil
 	}
 
 	group, _ := c.newErrGroup(ctx)
@@ -96,7 +97,13 @@ func (c Command) Run(ctx context.Context) error {
 		})
 	}
 	if err = group.Wait(); err != nil {
+		if progress != nil {
+			progress.Finish()
+		}
 		return err
+	}
+	if progress != nil {
+		progress.Finish()
 	}
 	// Remove skipped modules.
 	if c.optionIsSet(OptionSkipFresh) {

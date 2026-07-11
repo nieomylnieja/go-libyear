@@ -20,5 +20,5 @@ func TestModuleSpinner_FinishClearsProgressLine(t *testing.T) {
 
 	actual := output.String()
 	assert.Contains(t, actual, "Scanning 1/1 modules")
-	assert.Regexp(t, regexp.MustCompile(`Scanning 1/1 modules.*\r +\r\n$`), actual)
+	assert.Regexp(t, regexp.MustCompile(`Scanning 1/1 modules.*\r +\r$`), actual)
 }

@@ -38,7 +38,6 @@ func (s *ModuleSpinner) Start(total int) {
 	s.bar = progressbar.NewOptions(-1,
 		progressbar.OptionSetDescription(s.description(0)),
 		progressbar.OptionSetWriter(s.writer),
-		progressbar.OptionOnCompletion(func() { _, _ = fmt.Fprint(s.writer, "\n") }),
 		progressbar.OptionClearOnFinish(),
 		progressbar.OptionSpinnerType(14))
 	s.mu.Unlock()

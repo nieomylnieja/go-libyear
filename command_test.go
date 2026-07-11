@@ -642,7 +642,7 @@ func TestCommand_RunReportsModuleProgress(t *testing.T) {
 			Return(module.latest, nil)
 	}
 	progress := &recordingProgress{}
-	output := &recordingOutput{}
+	output := &recordingOutput{progress: progress}
 	cmd := Command{
 		source: staticSource(`module example.com/app
 
@@ -663,6 +663,7 @@ require (
 	assert.Equal(t, []int{2}, progress.started)
 	assert.Equal(t, 2, progress.advanced)
 	assert.Equal(t, 1, progress.finished)
+	assert.Equal(t, 1, output.progressFinishedOnSend)
 	assert.Len(t, output.summary.Modules, 2)
 }
 
@@ -1097,10 +1098,15 @@ func (s staticSource) Read() ([]byte, error) {
 }
 
 type recordingOutput struct {
-	summary Summary
+	summary                Summary
+	progress               *recordingProgress
+	progressFinishedOnSend int
 }
 
 func (o *recordingOutput) Send(summary Summary) error {
+	if o.progress != nil {
+		o.progressFinishedOnSend = o.progress.Finished()
+	}
 	o.summary = summary
 	return nil
 }
@@ -1128,4 +1134,10 @@ func (p *recordingProgress) Finish() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.finished++
+}
+
+func (p *recordingProgress) Finished() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.finished
 }
