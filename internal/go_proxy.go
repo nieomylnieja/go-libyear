@@ -2,12 +2,14 @@ package internal
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -58,7 +60,18 @@ func (c *GoProxyClient) GetInfo(path string, version *semver.Version) (*Module, 
 }
 
 func (c *GoProxyClient) GetLatestInfo(path string) (*Module, error) {
-	return c.getInfo(path, nil, true)
+	m, err := c.getInfo(path, nil, true)
+	if err == nil {
+		return m, nil
+	}
+	if !isProxyNotFound(err) {
+		return nil, err
+	}
+	m, fallbackErr := c.getLatestInfoFromVersions(path)
+	if fallbackErr != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *GoProxyClient) getInfo(path string, version *semver.Version, latest bool) (*Module, error) {
@@ -115,6 +128,29 @@ func (c *GoProxyClient) GetVersions(path string) ([]*semver.Version, error) {
 	return versions, nil
 }
 
+func (c *GoProxyClient) getLatestInfoFromVersions(path string) (*Module, error) {
+	versions, err := c.GetVersions(path)
+	if err != nil {
+		return nil, err
+	}
+	sort.Sort(semver.Collection(versions))
+	var latestErr error
+	for i := len(versions) - 1; i >= 0; i-- {
+		m, err := c.GetInfo(path, versions[i])
+		if err == nil {
+			return m, nil
+		}
+		if !isProxyNotFound(err) {
+			return nil, err
+		}
+		latestErr = err
+	}
+	if latestErr != nil {
+		return nil, latestErr
+	}
+	return nil, fmt.Errorf("no versions found for path %s", path)
+}
+
 func (c *GoProxyClient) GetModFile(path string, version *semver.Version) ([]byte, error) {
 	urlPath := fmt.Sprintf(getModFileFmt, escapePath(path), version)
 	return c.query(urlPath)
@@ -125,14 +161,39 @@ func (c *GoProxyClient) query(urlPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf(
-			"unexpected response status code from %s %s: %d, body: %s",
-			http.MethodGet, resp.Request.URL.String(), resp.StatusCode, string(data))
+		return nil, &proxyResponseError{
+			method:     http.MethodGet,
+			url:        resp.Request.URL.String(),
+			statusCode: resp.StatusCode,
+			body:       string(data),
+		}
 	}
-	defer func() { _ = resp.Body.Close() }()
 	return io.ReadAll(resp.Body)
+}
+
+type proxyResponseError struct {
+	method     string
+	url        string
+	statusCode int
+	body       string
+}
+
+func (e *proxyResponseError) Error() string {
+	return fmt.Sprintf(
+		"unexpected response status code from %s %s: %d, body: %s",
+		e.method, e.url, e.statusCode, e.body)
+}
+
+func isProxyNotFound(err error) bool {
+	var responseErr *proxyResponseError
+	if !errors.As(err, &responseErr) {
+		return false
+	}
+	return responseErr.statusCode == http.StatusNotFound ||
+		responseErr.statusCode == http.StatusGone
 }
 
 var uppercaseRegex = regexp.MustCompile(`[A-Z]`)
