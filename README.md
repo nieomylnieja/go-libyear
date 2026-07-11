@@ -47,7 +47,7 @@ $ go-libyear
 package                             version  date        latest   latest_date  libyear
 github.com/nieomylnieja/go-libyear           2023-11-06                        2.41
 github.com/Masterminds/semver       v1.4.2   2019-04-07  v1.5.0   2021-09-14   2.44
-github.com/urfave/cli/v2            v2.20.0  2022-10-14  v2.27.7  2024-11-03   2.05
+github.com/urfave/cli/v3            v3.10.1  2026-06-28  v3.10.1  2026-06-28   0.00
 golang.org/x/mod                    v0.12.0  2023-06-21  v0.26.0  2025-06-18   2.00
 golang.org/x/sync                   v0.3.0   2023-06-01  v0.15.0  2025-06-11   2.03
 ```
