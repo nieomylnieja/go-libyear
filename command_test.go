@@ -1,9 +1,11 @@
 package libyear
 
 import (
+	"context"
 	"errors"
 	"math"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -603,6 +605,85 @@ func TestCommand_HandleFixVersionsWhenNewMajorIsAvailable_NoCompensate(t *testin
 	assert.Zero(t, module.Libyear)
 }
 
+func TestCommand_RunReportsModuleProgress(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	modulesRepo := mocks.NewMockModulesRepo(ctrl)
+	for _, module := range []struct {
+		path        string
+		currentTime string
+		latest      *internal.Module
+	}{
+		{
+			path:        "example.com/alpha",
+			currentTime: "2023-01-01",
+			latest: &internal.Module{
+				Path:    "example.com/alpha",
+				Version: semver.MustParse("v1.1.0"),
+				Time:    mustParseTime(t, "2023-01-02"),
+			},
+		},
+		{
+			path:        "example.com/beta",
+			currentTime: "2023-02-01",
+			latest: &internal.Module{
+				Path:    "example.com/beta",
+				Version: semver.MustParse("v1.1.0"),
+				Time:    mustParseTime(t, "2023-02-03"),
+			},
+		},
+	} {
+		modulesRepo.EXPECT().
+			GetInfo(module.path, semver.MustParse("v1.0.0")).
+			Times(1).
+			Return(&internal.Module{Time: mustParseTime(t, module.currentTime)}, nil)
+		modulesRepo.EXPECT().
+			GetLatestInfo(module.path).
+			Times(1).
+			Return(module.latest, nil)
+	}
+	progress := &recordingProgress{}
+	output := &recordingOutput{}
+	cmd := Command{
+		source: staticSource(`module example.com/app
+
+require (
+	example.com/alpha v1.0.0
+	example.com/beta v1.0.0
+)
+`),
+		output:   output,
+		repo:     modulesRepo,
+		opts:     OptionUseGoList,
+		progress: progress,
+	}
+
+	err := cmd.Run(context.Background())
+
+	require.NoError(t, err)
+	assert.Equal(t, []int{2}, progress.started)
+	assert.Equal(t, 2, progress.advanced)
+	assert.Equal(t, 1, progress.finished)
+	assert.Len(t, output.summary.Modules, 2)
+}
+
+func TestCommand_RunDoesNotReportModuleProgressForEmptyModuleList(t *testing.T) {
+	progress := &recordingProgress{}
+	output := &recordingOutput{}
+	cmd := Command{
+		source:   staticSource("module example.com/app\n"),
+		output:   output,
+		progress: progress,
+	}
+
+	err := cmd.Run(context.Background())
+
+	require.NoError(t, err)
+	assert.Empty(t, progress.started)
+	assert.Zero(t, progress.advanced)
+	assert.Zero(t, progress.finished)
+	assert.Empty(t, output.summary.Modules)
+}
+
 func TestCommand_FindLatestBefore_CheckCurrentTime(t *testing.T) {
 	cmd := Command{ageLimit: mustParseTime(t, "2023-01-12")}
 
@@ -1007,4 +1088,44 @@ func mustParseTime(t *testing.T, date string) time.Time {
 	t.Helper()
 	parsed, _ := time.Parse(time.DateOnly, date)
 	return parsed
+}
+
+type staticSource string
+
+func (s staticSource) Read() ([]byte, error) {
+	return []byte(s), nil
+}
+
+type recordingOutput struct {
+	summary Summary
+}
+
+func (o *recordingOutput) Send(summary Summary) error {
+	o.summary = summary
+	return nil
+}
+
+type recordingProgress struct {
+	mu       sync.Mutex
+	started  []int
+	advanced int
+	finished int
+}
+
+func (p *recordingProgress) Start(total int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.started = append(p.started, total)
+}
+
+func (p *recordingProgress) Advance() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.advanced++
+}
+
+func (p *recordingProgress) Finish() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.finished++
 }

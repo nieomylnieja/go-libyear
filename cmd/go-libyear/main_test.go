@@ -84,6 +84,16 @@ func Test_findGoModPath(t *testing.T) {
 	}
 }
 
+func Test_isTerminalReturnsFalseForRegularFile(t *testing.T) {
+	t.Parallel()
+
+	file, err := os.CreateTemp(t.TempDir(), "stderr-*")
+	require.NoError(t, err)
+	defer func() { require.NoError(t, file.Close()) }()
+
+	assert.False(t, isTerminal(file))
+}
+
 func mkdirAll(t *testing.T, path string) {
 	t.Helper()
 

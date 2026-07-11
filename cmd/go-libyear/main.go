@@ -122,6 +122,9 @@ func run(cliCtx *cli.Context) error {
 	if cliCtx.IsSet(flagAgeLimit.Name) {
 		builder = builder.WithAgeLimit(*flagAgeLimit.Get(cliCtx))
 	}
+	if progress := newModuleProgress(); progress != nil {
+		builder = builder.WithModuleProgress(progress)
+	}
 
 	cmd, err := builder.Build()
 	if err != nil {
@@ -238,6 +241,21 @@ func isStdinUsed() bool {
 		return false
 	}
 	return stat.Mode()&os.ModeCharDevice == 0
+}
+
+func newModuleProgress() golibyear.ModuleProgress {
+	if !isTerminal(os.Stderr) {
+		return nil
+	}
+	return internal.NewModuleSpinner(os.Stderr)
+}
+
+func isTerminal(file *os.File) bool {
+	stat, err := file.Stat()
+	if err != nil {
+		return false
+	}
+	return stat.Mode()&os.ModeCharDevice != 0
 }
 
 func validateFlagsMutualExclusion(cliCtx *cli.Context, flags []string) error {
