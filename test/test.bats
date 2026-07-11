@@ -72,6 +72,19 @@ setup() {
 	assert_output_equals basic_usage
 }
 
+@test "go_proxy: default source discovers parent go.mod" {
+	project="$BATS_TEST_TMPDIR/default-source"
+	mkdir -p "$project/nested"
+	cp "$TEST_GO_MOD" "$project/go.mod"
+
+	pushd "$project/nested" >/dev/null
+	run go-libyear
+	popd >/dev/null
+
+	assert_success
+	assert_output_equals basic_usage
+}
+
 @test "go_proxy: show versions" {
 	run go-libyear --versions "$TEST_GO_MOD"
 	assert_success
@@ -228,10 +241,10 @@ EOF
 	assert_output "Error: open ./fake-path: no such file or directory"
 }
 
-@test "error: no path" {
+@test "error: no discovered go.mod" {
 	run go-libyear
 	assert_failure
-	assert_output "Error: invalid number of arguments provided, expected a single argument, path to go.mod"
+	assert_output --partial "Error: could not find go.mod"
 }
 
 @test "error: stdin with forbidden args" {
