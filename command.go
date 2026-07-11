@@ -91,7 +91,13 @@ func (c Command) Run(ctx context.Context) error {
 		module := module
 		group.Go(func() error {
 			if progress != nil {
-				defer progress.Advance()
+				defer func() {
+					if moduleProgress, ok := progress.(interface{ AdvanceModule(path string) }); ok {
+						moduleProgress.AdvanceModule(module.Path)
+						return
+					}
+					progress.Advance()
+				}()
 			}
 			return c.runForModule(module)
 		})

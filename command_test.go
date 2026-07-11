@@ -661,10 +661,46 @@ require (
 
 	require.NoError(t, err)
 	assert.Equal(t, []int{2}, progress.started)
+	assert.ElementsMatch(t, []string{"example.com/alpha", "example.com/beta"}, progress.modules)
 	assert.Equal(t, 2, progress.advanced)
 	assert.Equal(t, 1, progress.finished)
 	assert.Equal(t, 1, output.progressFinishedOnSend)
 	assert.Len(t, output.summary.Modules, 2)
+}
+
+func TestCommand_RunReportsLegacyModuleProgress(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	modulesRepo := mocks.NewMockModulesRepo(ctrl)
+	modulesRepo.EXPECT().
+		GetInfo("example.com/alpha", semver.MustParse("v1.0.0")).
+		Times(1).
+		Return(&internal.Module{Time: mustParseTime(t, "2023-01-01")}, nil)
+	modulesRepo.EXPECT().
+		GetLatestInfo("example.com/alpha").
+		Times(1).
+		Return(&internal.Module{
+			Path:    "example.com/alpha",
+			Version: semver.MustParse("v1.1.0"),
+			Time:    mustParseTime(t, "2023-01-02"),
+		}, nil)
+	progress := &legacyRecordingProgress{}
+	cmd := Command{
+		source: staticSource(`module example.com/app
+
+require example.com/alpha v1.0.0
+`),
+		output:   &recordingOutput{},
+		repo:     modulesRepo,
+		opts:     OptionUseGoList,
+		progress: progress,
+	}
+
+	err := cmd.Run(context.Background())
+
+	require.NoError(t, err)
+	assert.Equal(t, []int{1}, progress.started)
+	assert.Equal(t, 1, progress.advanced)
+	assert.Equal(t, 1, progress.finished)
 }
 
 func TestCommand_RunDoesNotReportModuleProgressForEmptyModuleList(t *testing.T) {
@@ -1114,6 +1150,7 @@ func (o *recordingOutput) Send(summary Summary) error {
 type recordingProgress struct {
 	mu       sync.Mutex
 	started  []int
+	modules  []string
 	advanced int
 	finished int
 }
@@ -1124,6 +1161,13 @@ func (p *recordingProgress) Start(total int) {
 	p.started = append(p.started, total)
 }
 
+func (p *recordingProgress) AdvanceModule(path string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.modules = append(p.modules, path)
+	p.advanced++
+}
+
 func (p *recordingProgress) Advance() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1131,6 +1175,31 @@ func (p *recordingProgress) Advance() {
 }
 
 func (p *recordingProgress) Finish() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.finished++
+}
+
+type legacyRecordingProgress struct {
+	mu       sync.Mutex
+	started  []int
+	advanced int
+	finished int
+}
+
+func (p *legacyRecordingProgress) Start(total int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.started = append(p.started, total)
+}
+
+func (p *legacyRecordingProgress) Advance() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.advanced++
+}
+
+func (p *legacyRecordingProgress) Finish() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.finished++

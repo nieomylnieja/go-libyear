@@ -15,10 +15,10 @@ func TestModuleSpinner_FinishClearsProgressLine(t *testing.T) {
 	spinner := NewModuleSpinner(&output)
 
 	spinner.Start(1)
-	spinner.Advance()
+	spinner.AdvanceModule("example.com/module")
 	spinner.Finish()
 
 	actual := output.String()
-	assert.Contains(t, actual, "Scanning 1/1 modules")
-	assert.Regexp(t, regexp.MustCompile(`Scanning 1/1 modules.*\r +\r$`), actual)
+	assert.Contains(t, actual, "Scanning 1/1 modules: example.com/module")
+	assert.Regexp(t, regexp.MustCompile(`Scanning 1/1 modules: example\.com/module.*\r +\r$`), actual)
 }

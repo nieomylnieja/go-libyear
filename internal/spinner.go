@@ -15,6 +15,7 @@ type ModuleSpinner struct {
 	bar       *progressbar.ProgressBar
 	total     int
 	completed int
+	module    string
 	stop      chan struct{}
 	wg        sync.WaitGroup
 	mu        sync.Mutex
@@ -33,6 +34,7 @@ func (s *ModuleSpinner) Start(total int) {
 	s.mu.Lock()
 	s.total = total
 	s.completed = 0
+	s.module = ""
 	s.stop = make(chan struct{})
 	stop := s.stop
 	s.bar = progressbar.NewOptions(-1,
@@ -44,6 +46,20 @@ func (s *ModuleSpinner) Start(total int) {
 
 	s.wg.Add(1)
 	go s.spin(stop)
+}
+
+// AdvanceModule reports that a module scan has finished.
+func (s *ModuleSpinner) AdvanceModule(module string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.bar == nil {
+		return
+	}
+	s.module = module
+	if s.completed < s.total {
+		s.completed++
+	}
+	s.bar.Describe(s.description(s.completed))
 }
 
 // Advance reports that one module scan has finished.
@@ -101,5 +117,8 @@ func (s *ModuleSpinner) spin(stop <-chan struct{}) {
 }
 
 func (s *ModuleSpinner) description(completed int) string {
+	if s.module != "" {
+		return fmt.Sprintf("Scanning %d/%d modules: %s", completed, s.total, s.module)
+	}
 	return fmt.Sprintf("Scanning %d/%d modules", completed, s.total)
 }
