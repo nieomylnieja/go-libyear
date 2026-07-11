@@ -25,7 +25,8 @@ main() {
   git -C "$repo_dir" init --quiet
   git -C "$repo_dir" add --all
 
-  just --justfile "$repo_dir/justfile" --working-directory "$repo_dir" generate
+  GIT_TAG=check-generate BUILD_DATE=1970-01-01 \
+    just --justfile "$repo_dir/justfile" --working-directory "$repo_dir" generate
 
   changed=$(git -C "$repo_dir" diff --name-status -- '*.go' '*.yaml' '*.json')
   untracked=$(git -C "$repo_dir" ls-files --others --exclude-standard -- '*.go' '*.yaml' '*.json')

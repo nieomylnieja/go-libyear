@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
+	github.com/urfave/cli/v3 v3.10.1
 	go.uber.org/mock v0.6.0
 	golang.org/x/mod v0.38.0
 	golang.org/x/sync v0.22.0
