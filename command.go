@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	pathlib "path"
@@ -11,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nieomylnieja/go-libyear/internal"
@@ -53,14 +55,17 @@ type ModuleProgress interface {
 }
 
 type Command struct {
-	source           Source
-	output           Output
-	repo             ModulesRepo
-	fallbackVersions VersionsGetter
-	opts             Option
-	vcs              *VCSRegistry
-	ageLimit         time.Time
-	progress         ModuleProgress
+	source             Source
+	output             Output
+	repo               ModulesRepo
+	fallbackVersions   VersionsGetter
+	opts               Option
+	vcs                *VCSRegistry
+	ageLimit           time.Time
+	progress           ModuleProgress
+	ignoreModuleErrors bool
+	moduleErrorWriter  io.Writer
+	moduleErrorPrefix  string
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -86,20 +91,12 @@ func (c Command) Run(ctx context.Context) error {
 		progress = nil
 	}
 
+	ignoredErrors := &ignoredModuleErrors{}
 	group, _ := c.newErrGroup(ctx)
 	for _, module := range modules {
 		module := module
 		group.Go(func() error {
-			if progress != nil {
-				defer func() {
-					if moduleProgress, ok := progress.(interface{ AdvanceModule(path string) }); ok {
-						moduleProgress.AdvanceModule(module.Path)
-						return
-					}
-					progress.Advance()
-				}()
-			}
-			return c.runForModule(module)
+			return c.runModule(module, progress, ignoredErrors)
 		})
 	}
 	if err = group.Wait(); err != nil {
@@ -110,6 +107,10 @@ func (c Command) Run(ctx context.Context) error {
 	}
 	if progress != nil {
 		progress.Finish()
+	}
+	modules, err = c.removeIgnoredModules(modules, ignoredErrors.all())
+	if err != nil {
+		return err
 	}
 	// Remove skipped modules.
 	if c.optionIsSet(OptionSkipFresh) {
@@ -130,6 +131,101 @@ func (c Command) Run(ctx context.Context) error {
 		releases: c.optionIsSet(OptionShowReleases),
 		versions: c.optionIsSet(OptionShowVersions),
 	})
+}
+
+func (c Command) runModule(
+	module *internal.Module,
+	progress ModuleProgress,
+	ignoredErrors *ignoredModuleErrors,
+) error {
+	if progress != nil {
+		defer advanceModuleProgress(progress, module.Path)
+	}
+	if err := c.runForModule(module); err != nil {
+		if c.ignoreModuleErrors {
+			ignoredErrors.add(module.Path, err)
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func advanceModuleProgress(progress ModuleProgress, path string) {
+	if moduleProgress, ok := progress.(interface{ AdvanceModule(path string) }); ok {
+		moduleProgress.AdvanceModule(path)
+		return
+	}
+	progress.Advance()
+}
+
+func (c Command) removeIgnoredModules(
+	modules []*internal.Module,
+	ignored []ignoredModuleError,
+) ([]*internal.Module, error) {
+	if len(ignored) == 0 {
+		return modules, nil
+	}
+	ignoredPaths := make(map[string]struct{}, len(ignored))
+	for _, moduleError := range ignored {
+		ignoredPaths[moduleError.path] = struct{}{}
+	}
+	modules = slices.DeleteFunc(modules, func(module *internal.Module) bool {
+		_, ignored := ignoredPaths[module.Path]
+		return ignored
+	})
+	if err := c.writeIgnoredModuleErrors(ignored); err != nil {
+		return nil, err
+	}
+	return modules, nil
+}
+
+type ignoredModuleError struct {
+	path string
+	err  error
+}
+
+type ignoredModuleErrors struct {
+	mu     sync.Mutex
+	errors []ignoredModuleError
+}
+
+func (e *ignoredModuleErrors) add(path string, err error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.errors = append(e.errors, ignoredModuleError{path: path, err: err})
+}
+
+func (e *ignoredModuleErrors) all() []ignoredModuleError {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	moduleErrors := slices.Clone(e.errors)
+	sort.Slice(moduleErrors, func(i, j int) bool {
+		return moduleErrors[i].path < moduleErrors[j].path
+	})
+	return moduleErrors
+}
+
+func (c Command) writeIgnoredModuleErrors(moduleErrors []ignoredModuleError) error {
+	if c.moduleErrorWriter == nil {
+		return nil
+	}
+	for _, moduleError := range moduleErrors {
+		prefix := "Warning"
+		if c.moduleErrorPrefix != "" {
+			prefix += ": " + c.moduleErrorPrefix
+		}
+		if _, err := fmt.Fprintf(
+			c.moduleErrorWriter,
+			"%s: ignoring module %s: %v\n",
+			prefix,
+			moduleError.path,
+			moduleError.err,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 const secondsInYear = float64(365 * 24 * 60 * 60)
@@ -394,14 +490,45 @@ func (c Command) optionIsSet(option Option) bool {
 
 var errNoMatchingVersions = errors.New("no matching versions")
 
+type moduleReleasedAfterCutoffError struct {
+	path        string
+	version     *semver.Version
+	releaseTime time.Time
+	cutoff      time.Time
+}
+
+func (e *moduleReleasedAfterCutoffError) Error() string {
+	version := "<unknown>"
+	if e.version != nil {
+		version = e.version.Original()
+		if version == "" {
+			version = e.version.String()
+		}
+	}
+	return fmt.Sprintf(
+		"go.mod requires %s@%s released on %s, after cutoff %s; "+
+			"cannot calculate libyear before that version existed; "+
+			"use a cutoff on or after %s or analyze a go.mod from the requested date",
+		e.path,
+		version,
+		e.releaseTime.Format(time.DateOnly),
+		e.cutoff.Format(time.DateOnly),
+		e.releaseTime.UTC().Format(time.RFC3339),
+	)
+}
+
 // findLatestBefore uses binary search to find the latest module published before the given time.
 // It is highly recommended to use cache when calling this function.
 // current argument is optional, if it is provided, the function optimizes its search by skipping
 // every version preceding current version.
 func (c Command) findLatestBefore(repo ModulesRepo, path string, current *internal.Module) (*internal.Module, error) {
 	if current != nil && c.ageLimit.Before(current.Time) {
-		return nil, fmt.Errorf("current module release time: %s is after the before flag value: %s",
-			current.Time.Format(time.DateOnly), c.ageLimit.Format(time.DateOnly))
+		return nil, &moduleReleasedAfterCutoffError{
+			path:        path,
+			version:     current.Version,
+			releaseTime: current.Time,
+			cutoff:      c.ageLimit,
+		}
 	}
 	// Make sure we handle prerelease versions as well.
 	isPrerelease := current != nil && current.Version.Prerelease() != ""

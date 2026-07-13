@@ -1,4 +1,5 @@
 go-libyear [flags] [path]
+go-libyear history [flags] [path]
 
 Calculate Go module's libyear!
 
@@ -28,6 +29,17 @@ The following output formats are supported:
   - CSV
   - JSON
 The main module entry contains the sum of all dependencies' libyears.
+
+Historical samples can be calculated with the history subcommand:
+  go-libyear history --from 2022-01-01T00:00:00Z --to 2024-01-01T00:00:00Z --interval 720h ./go.mod
+The history subcommand renders a terminal chart by default.
+Use --json or --csv to emit structured data instead.
+For a local file path, history reads the committed go.mod from Git at each sample timestamp.
+Module metadata lookup failures are printed to stderr and ignored for that sample.
+The --from and --interval flags are required.
+The --to flag defaults to the current time.
+History ranges are limited to 10,000 samples.
+The --width flag controls the terminal chart width and must be at least 40.
 
 Under the hood, wherever possible GOPROXY API is queried to fetch modules' information.
 The program respects GOPROXY environment variable.

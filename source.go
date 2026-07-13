@@ -1,13 +1,18 @@
 package libyear
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver"
 )
@@ -96,6 +101,77 @@ type FileSource struct {
 
 func (s FileSource) Read() ([]byte, error) {
 	return os.ReadFile(s.Path)
+}
+
+func (s FileSource) readHistory(ctx context.Context, timestamp time.Time) ([]byte, error) {
+	absPath, err := filepath.Abs(s.Path)
+	if err != nil {
+		return nil, fmt.Errorf("resolve absolute path for %s: %w", s.Path, err)
+	}
+	repoRoot, err := gitOutputString(ctx, filepath.Dir(absPath), "rev-parse", "--show-toplevel")
+	if err != nil {
+		return nil, fmt.Errorf("find git repository for %s: %w", s.Path, err)
+	}
+	repoRoot = filepath.Clean(repoRoot)
+
+	relPath, err := filepath.Rel(repoRoot, absPath)
+	if err != nil {
+		return nil, fmt.Errorf("resolve %s relative to git repository %s: %w", absPath, repoRoot, err)
+	}
+	if relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) || filepath.IsAbs(relPath) {
+		return nil, fmt.Errorf("%s is outside git repository %s", absPath, repoRoot)
+	}
+	relPath = filepath.ToSlash(relPath)
+
+	cutoff := timestamp.UTC().Format(time.RFC3339)
+	commit, err := gitOutputString(
+		ctx,
+		repoRoot,
+		"rev-list",
+		"-1",
+		"--before="+cutoff,
+		"HEAD",
+		"--",
+		relPath,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("find git revision for %s at or before %s: %w", relPath, cutoff, err)
+	}
+	if commit == "" {
+		return nil, fmt.Errorf("no git revision found for %s at or before %s", relPath, cutoff)
+	}
+
+	data, err := gitOutput(ctx, repoRoot, "show", commit+":"+relPath)
+	if err != nil {
+		return nil, fmt.Errorf("read %s from git revision %s: %w", relPath, commit, err)
+	}
+	return data, nil
+}
+
+func gitOutputString(ctx context.Context, dir string, args ...string) (string, error) {
+	data, err := gitOutput(ctx, dir, args...)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(data)), nil
+}
+
+func gitOutput(ctx context.Context, dir string, args ...string) ([]byte, error) {
+	// #nosec G204
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = dir
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	data, err := cmd.Output()
+	if err != nil {
+		stderrText := strings.TrimSpace(stderr.String())
+		if stderrText != "" {
+			return nil, fmt.Errorf("%w: %s", err, stderrText)
+		}
+		return nil, err
+	}
+	return data, nil
 }
 
 type StdinSource struct{}

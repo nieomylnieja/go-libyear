@@ -155,8 +155,44 @@ go-libyear --age-limit 2022-10-01T12:00:00Z ./go.mod
 The latest version for each package will be appointed as the latest version
 of the package before or at the provided timestamp.
 
-The flag works any other flag. If using a script to extract a history
-of the calculated metrics, it is recommended to use `--cache` flag as well.
+The flag works with other result flags.
+If using a script to extract a history of the calculated metrics,
+it is recommended to use `--cache` flag as well.
+
+To sample libyear over a range and render a terminal chart,
+use the `history` subcommand:
+
+```sh
+go-libyear history --from 2022-01-01T00:00:00Z --to 2024-01-01T00:00:00Z --interval 720h ./go.mod
+```
+
+For a local file path, `history` reads the committed version of that `go.mod`
+from Git at each sample timestamp.
+Samples before the file exists in the repository fail.
+
+The `--from` and `--interval` flags are required.
+The `--to` flag defaults to the current time.
+When the interval does not land exactly on `--to`,
+the final timestamp is added as the last sample.
+Ranges are limited to 10,000 samples.
+Use `--width` to set the chart width explicitly; charts require at least 40 columns.
+
+The same command can emit structured data for scripts:
+
+```sh
+go-libyear history --json --from 2022-01-01T00:00:00Z --interval 720h ./go.mod
+go-libyear history --csv --from 2022-01-01T00:00:00Z --interval 720h ./go.mod
+```
+
+When a module metadata lookup fails for one sample,
+`history` prints a warning to stderr and calculates that sample from the
+remaining modules.
+
+Source, cache, and calculation flags such as `--url`, `--pkg`, `--cache`,
+`--vcs-cache-dir`, `--indirect`, `--skip-fresh`, `--go-list`,
+and `--find-latest-major` also apply to `history`.
+For sources without Git history, the provided manifest is evaluated at each
+sample timestamp.
 
 ### Caching
 

@@ -724,8 +724,17 @@ func TestCommand_RunDoesNotReportModuleProgressForEmptyModuleList(t *testing.T) 
 func TestCommand_FindLatestBefore_CheckCurrentTime(t *testing.T) {
 	cmd := Command{ageLimit: mustParseTime(t, "2023-01-12")}
 
-	_, err := cmd.findLatestBefore(nil, "", &internal.Module{Time: mustParseTime(t, "2023-01-13")})
-	require.EqualError(t, err, "current module release time: 2023-01-13 is after the before flag value: 2023-01-12")
+	_, err := cmd.findLatestBefore(nil, "example.com/dep", &internal.Module{
+		Version: semver.MustParse("v1.0.0"),
+		Time:    mustParseTime(t, "2023-01-13"),
+	})
+	require.EqualError(
+		t,
+		err,
+		"go.mod requires example.com/dep@v1.0.0 released on 2023-01-13, "+
+			"after cutoff 2023-01-12; cannot calculate libyear before that version existed; "+
+			"use a cutoff on or after 2023-01-13T00:00:00Z or analyze a go.mod from the requested date",
+	)
 }
 
 func TestCommand_FindLatestBefore_NoMatchingVersions(t *testing.T) {
