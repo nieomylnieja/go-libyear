@@ -162,6 +162,8 @@ terminal chart.
 
 ![Terminal recording of go-libyear rendering a libyear history chart](docs/assets/history.gif)
 
+The recording source is available as a [VHS tape](docs/assets/history.tape).
+
 ### Sample a range
 
 ```sh
