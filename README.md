@@ -142,25 +142,27 @@ Example:
 | JSON   | `--json`  |
 | CSV    | `--csv`   |
 
-### Historical data
+### Caching
 
-In order to calculate the metrics in a given point in time,
-use `--age-limit` flag.
-Example:
+`go-libyear` ships with a built-in caching mechanism.
+It is disabled by default but can be enabled and adjusted with the following
+flags:
 
-```sh
-go-libyear --age-limit 2022-10-01T12:00:00Z ./go.mod
-```
+| Flag                | Explanation                            |
+|---------------------|----------------------------------------|
+| `--cache`           | Enable caching.                        |
+| `--cache-file-path` | Use the specified file for caching.    |
+| `--vcs-cache-dir`   | Use custom cache path for VCS modules. |
 
-The latest version for each package will be appointed as the latest version
-of the package before or at the provided timestamp.
+## History
 
-The flag works with other result flags.
-If using a script to extract a history of the calculated metrics,
-it is recommended to use `--cache` flag as well.
+Use the `history` subcommand to inspect how a project manages its dependencies
+over time. It samples libyear across a date range and renders the result as a
+terminal chart.
 
-To sample libyear over a range and render a terminal chart,
-use the `history` subcommand:
+![Terminal recording of go-libyear rendering a libyear history chart](docs/assets/history.gif)
+
+### Sample a range
 
 ```sh
 go-libyear history --from 2022-01-01T00:00:00Z --to 2024-01-01T00:00:00Z --interval 720h ./go.mod
@@ -194,17 +196,18 @@ and `--find-latest-major` also apply to `history`.
 For sources without Git history, the provided manifest is evaluated at each
 sample timestamp.
 
-### Caching
+### Sample a point in time
 
-`go-libyear` ships with a built-in caching mechanism.
-It is disabled by default but can be enabled and adjusted with the following
-flags:
+To calculate metrics at a single point in time, use `--age-limit`:
 
-| Flag                | Explanation                            |
-|---------------------|----------------------------------------|
-| `--cache`           | Enable caching.                        |
-| `--cache-file-path` | Use the specified file for caching.    |
-| `--vcs-cache-dir`   | Use custom cache path for VCS modules. |
+```sh
+go-libyear --age-limit 2022-10-01T12:00:00Z ./go.mod
+```
+
+The latest version for each package is the latest version released before or
+at the provided timestamp.
+The flag works with other result flags.
+When extracting a sequence of results in a script, enable `--cache` as well.
 
 ## Go versioning
 
