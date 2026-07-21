@@ -7,7 +7,7 @@ RUN go mod init test_server
 
 RUN go build -o /artifacts/test_server .
 
-FROM bats/bats:1.13.0
+FROM bats/bats:1.14.0
 
 RUN apk --no-cache --update add gettext git
 
