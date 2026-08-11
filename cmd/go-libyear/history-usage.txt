@@ -1,0 +1,17 @@
+go-libyear history [flags] [path]
+
+Calculate and chart historical libyear samples.
+
+For a local file path, history reads the committed go.mod from Git at each sample timestamp.
+Module metadata lookup failures are printed to stderr and ignored for that sample.
+
+The --from and --interval flags are required.
+The --to flag defaults to the current time.
+History ranges are limited to 10,000 samples.
+
+The command renders a terminal chart by default.
+Use --json or --csv to emit structured data instead.
+The --width flag controls the terminal chart width and must be at least 40.
+
+Example:
+  go-libyear history --from 2022-01-01T00:00:00Z --to 2024-01-01T00:00:00Z --interval 720h ./go.mod

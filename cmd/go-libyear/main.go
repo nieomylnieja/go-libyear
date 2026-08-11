@@ -30,6 +30,9 @@ var (
 //go:embed usage.txt
 var usageText string
 
+//go:embed history-usage.txt
+var historyUsageText string
+
 func main() {
 	log.SetOutput(os.Stderr)
 	cmd := &cli.Command{
@@ -100,7 +103,7 @@ func historyCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "history",
 		Usage:     "Calculate and chart historical libyear samples",
-		UsageText: "go-libyear history [flags] [path]",
+		UsageText: historyUsageText,
 		Action:    runHistory,
 		Flags: []cli.Flag{
 			flagURL,

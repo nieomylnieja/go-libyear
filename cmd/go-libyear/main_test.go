@@ -94,6 +94,16 @@ func Test_isTerminalReturnsFalseForRegularFile(t *testing.T) {
 	assert.False(t, isTerminal(file))
 }
 
+func Test_historyCommandUsesHistoryUsageText(t *testing.T) {
+	t.Parallel()
+
+	cmd := historyCommand()
+
+	assert.Equal(t, historyUsageText, cmd.UsageText)
+	assert.Contains(t, cmd.UsageText, "go-libyear history [flags] [path]")
+	assert.NotContains(t, usageText, "go-libyear history [flags] [path]")
+}
+
 func mkdirAll(t *testing.T, path string) {
 	t.Helper()
 

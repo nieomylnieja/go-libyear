@@ -37,8 +37,9 @@ docker run --rm ghcr.io/nieomylnieja/go-libyear -p github.com/nieomylnieja/go-li
 ## Usage
 
 `go-libyear` can be used both as a CLI and Go library.
-The CLI usage is also documented in [usage.txt](./cmd/go-libyear/usage.txt)
-and accessed through `go-libyear --help`.
+The CLI usage is documented in [usage.txt](./cmd/go-libyear/usage.txt)
+and [history-usage.txt](./cmd/go-libyear/history-usage.txt).
+Access it through `go-libyear --help` or `go-libyear history --help`.
 
 Basic usage:
 
