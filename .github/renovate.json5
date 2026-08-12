@@ -6,6 +6,10 @@
     "group:recommended", // https://docs.renovatebot.com/presets-group/#grouprecommended
     "workarounds:all", // https://docs.renovatebot.com/presets-workarounds/#workaroundsall
     ":preserveSemverRanges", // https://docs.renovatebot.com/presets-default/#preservesemverranges
+    // Automerge configuration.
+    ":automergeMinor",
+    ":automergePr",
+    ":automergeRequireAllStatusChecks",
   ],
   "reviewersFromCodeOwners": true,
   "dependencyDashboard": true,
