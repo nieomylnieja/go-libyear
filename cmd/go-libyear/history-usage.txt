@@ -4,7 +4,8 @@ Calculate and chart historical libyear samples.
 
 For a local file path, history reads the committed go.mod from Git at each sample timestamp.
 It follows path renames along the first-parent history of HEAD.
-Module metadata lookup failures are printed to stderr and ignored for that sample.
+Module metadata lookup failures are printed to stderr once per dependency version.
+They are ignored for each affected sample.
 
 The --from and --interval flags are required.
 The --to flag defaults to the current time.

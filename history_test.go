@@ -353,6 +353,76 @@ require example.com/dep v1.0.0
 	)
 }
 
+func TestHistoryCommand_RunReportsIgnoredModuleErrorOncePerVersion(t *testing.T) {
+	from := time.Date(2022, 7, 1, 0, 0, 0, 0, time.UTC)
+	next := from.Add(24 * time.Hour)
+	to := next.Add(24 * time.Hour)
+	source := &recordingHistoricalSource{snapshots: map[time.Time]string{
+		from: `module example.com/app
+
+go 1.22
+
+require (
+	example.com/broken v1.0.0
+	example.com/other v1.0.0
+)
+`,
+		next: `module example.com/app
+
+go 1.22
+
+require (
+	example.com/broken v1.0.0
+	example.com/other v1.0.0
+)
+`,
+		to: `module example.com/app
+
+go 1.22
+
+require (
+	example.com/broken v1.1.0
+	example.com/other v1.0.0
+)
+`,
+	}}
+	output := &collectingHistoryOutput{}
+	warnings := &bytes.Buffer{}
+	repo := newFakeHistoryRepo()
+	repo.infoErrors[moduleVersionKey("example.com/broken", semver.MustParse("v1.0.0"))] = errors.New(
+		"module metadata not found",
+	)
+	repo.infoErrors[moduleVersionKey("example.com/broken", semver.MustParse("v1.1.0"))] = errors.New(
+		"module metadata not found",
+	)
+	repo.infoErrors[moduleVersionKey("example.com/other", semver.MustParse("v1.0.0"))] = errors.New(
+		"module metadata not found",
+	)
+	cmd, err := NewHistoryCommandBuilder(source, output).
+		WithModulesRepo(repo).
+		WithFallbackVersionsGetter(emptyVersionsGetter{}).
+		WithVCSRegistry(&VCSRegistry{}).
+		WithRange(from, to, 24*time.Hour).
+		WithIgnoredModuleErrors(warnings).
+		Build()
+	require.NoError(t, err)
+
+	err = cmd.Run(t.Context())
+
+	require.NoError(t, err)
+	require.Len(t, output.history.Samples, 3)
+	assert.Equal(
+		t,
+		"Warning: history sample 2022-07-01T00:00:00Z: "+
+			"ignoring module example.com/broken: module metadata not found\n"+
+			"Warning: history sample 2022-07-01T00:00:00Z: "+
+			"ignoring module example.com/other: module metadata not found\n"+
+			"Warning: history sample 2022-07-03T00:00:00Z: "+
+			"ignoring module example.com/broken: module metadata not found\n",
+		warnings.String(),
+	)
+}
+
 func TestHistoryCommand_RunDoesNotIgnoreSamplesBeforeCurrentVersion(t *testing.T) {
 	source := &countingSource{content: `module example.com/app
 

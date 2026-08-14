@@ -55,17 +55,18 @@ type ModuleProgress interface {
 }
 
 type Command struct {
-	source             Source
-	output             Output
-	repo               ModulesRepo
-	fallbackVersions   VersionsGetter
-	opts               Option
-	vcs                *VCSRegistry
-	ageLimit           time.Time
-	progress           ModuleProgress
-	ignoreModuleErrors bool
-	moduleErrorWriter  io.Writer
-	moduleErrorPrefix  string
+	source                 Source
+	output                 Output
+	repo                   ModulesRepo
+	fallbackVersions       VersionsGetter
+	opts                   Option
+	vcs                    *VCSRegistry
+	ageLimit               time.Time
+	progress               ModuleProgress
+	ignoreModuleErrors     bool
+	moduleErrorWriter      io.Writer
+	moduleErrorPrefix      string
+	reportedModuleVersions map[moduleVersion]struct{}
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -143,7 +144,7 @@ func (c Command) runModule(
 	}
 	if err := c.runForModule(module); err != nil {
 		if c.ignoreModuleErrors && isModuleMetadataError(err) {
-			ignoredErrors.add(module.Path, err)
+			ignoredErrors.add(module, err)
 			return nil
 		}
 		return err
@@ -168,7 +169,7 @@ func (c Command) removeIgnoredModules(
 	}
 	ignoredPaths := make(map[string]struct{}, len(ignored))
 	for _, moduleError := range ignored {
-		ignoredPaths[moduleError.path] = struct{}{}
+		ignoredPaths[moduleError.module.path] = struct{}{}
 	}
 	modules = slices.DeleteFunc(modules, func(module *internal.Module) bool {
 		_, ignored := ignoredPaths[module.Path]
@@ -181,8 +182,13 @@ func (c Command) removeIgnoredModules(
 }
 
 type ignoredModuleError struct {
-	path string
-	err  error
+	module moduleVersion
+	err    error
+}
+
+type moduleVersion struct {
+	path    string
+	version string
 }
 
 type ignoredModuleErrors struct {
@@ -220,10 +226,17 @@ func isModuleMetadataError(err error) bool {
 	return ok
 }
 
-func (e *ignoredModuleErrors) add(path string, err error) {
+func (e *ignoredModuleErrors) add(module *internal.Module, err error) {
+	version := ""
+	if module.Version != nil {
+		version = module.Version.String()
+	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.errors = append(e.errors, ignoredModuleError{path: path, err: err})
+	e.errors = append(e.errors, ignoredModuleError{
+		module: moduleVersion{path: module.Path, version: version},
+		err:    err,
+	})
 }
 
 func (e *ignoredModuleErrors) all() []ignoredModuleError {
@@ -231,7 +244,10 @@ func (e *ignoredModuleErrors) all() []ignoredModuleError {
 	defer e.mu.Unlock()
 	moduleErrors := slices.Clone(e.errors)
 	sort.Slice(moduleErrors, func(i, j int) bool {
-		return moduleErrors[i].path < moduleErrors[j].path
+		if moduleErrors[i].module.path != moduleErrors[j].module.path {
+			return moduleErrors[i].module.path < moduleErrors[j].module.path
+		}
+		return moduleErrors[i].module.version < moduleErrors[j].module.version
 	})
 	return moduleErrors
 }
@@ -241,6 +257,9 @@ func (c Command) writeIgnoredModuleErrors(moduleErrors []ignoredModuleError) err
 		return nil
 	}
 	for _, moduleError := range moduleErrors {
+		if _, reported := c.reportedModuleVersions[moduleError.module]; reported {
+			continue
+		}
 		prefix := "Warning"
 		if c.moduleErrorPrefix != "" {
 			prefix += ": " + c.moduleErrorPrefix
@@ -249,10 +268,13 @@ func (c Command) writeIgnoredModuleErrors(moduleErrors []ignoredModuleError) err
 			c.moduleErrorWriter,
 			"%s: ignoring module %s: %v\n",
 			prefix,
-			moduleError.path,
+			moduleError.module.path,
 			moduleError.err,
 		); err != nil {
 			return err
+		}
+		if c.reportedModuleVersions != nil {
+			c.reportedModuleVersions[moduleError.module] = struct{}{}
 		}
 	}
 	return nil

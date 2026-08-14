@@ -193,9 +193,9 @@ go-libyear history --csv --from 2022-01-01T00:00:00Z --interval 720h ./go.mod
 JSON and CSV include the module path in each sample.
 This keeps samples unambiguous when the `module` directive changes.
 
-When a module metadata lookup fails for one sample,
-`history` prints a warning to stderr and calculates that sample from the
-remaining modules.
+When a module metadata lookup fails,
+`history` prints one warning per dependency version to stderr.
+It calculates each affected sample from the remaining modules.
 
 Source, cache, and calculation flags such as `--url`, `--pkg`, `--cache`,
 `--vcs-cache-dir`, `--indirect`, `--skip-fresh`, `--go-list`,

@@ -217,6 +217,7 @@ func (c HistoryCommand) Run(ctx context.Context) (runErr error) {
 
 	history := History{Samples: make([]HistorySample, 0, len(timestamps))}
 	moduleErrorOutput, moduleErrorWriter := c.moduleErrorOutput()
+	reportedModuleVersions := make(map[moduleVersion]struct{})
 	moduleErrorsHandled := false
 	defer func() {
 		finishProgress()
@@ -228,7 +229,14 @@ func (c HistoryCommand) Run(ctx context.Context) (runErr error) {
 		}
 	}()
 	for _, timestamp := range timestamps {
-		sample, err := c.runSample(ctx, timestamp, historyData, progress, moduleErrorWriter)
+		sample, err := c.runSample(
+			ctx,
+			timestamp,
+			historyData,
+			progress,
+			moduleErrorWriter,
+			reportedModuleVersions,
+		)
 		if err != nil {
 			return err
 		}
@@ -282,6 +290,7 @@ func (c HistoryCommand) runSample(
 	historyData []byte,
 	progress HistoryProgress,
 	moduleErrorWriter io.Writer,
+	reportedModuleVersions map[moduleVersion]struct{},
 ) (HistorySample, error) {
 	if err := historyContextErr(ctx); err != nil {
 		return HistorySample{}, err
@@ -292,7 +301,7 @@ func (c HistoryCommand) runSample(
 		return HistorySample{}, historySampleError(timestamp, err)
 	}
 	output := &recordingHistoryOutput{}
-	cmd := c.sampleCommand(timestamp, sampleData, output, moduleErrorWriter)
+	cmd := c.sampleCommand(timestamp, sampleData, output, moduleErrorWriter, reportedModuleVersions)
 	if err := cmd.Run(ctx); err != nil {
 		return HistorySample{}, historySampleError(timestamp, err)
 	}
@@ -338,18 +347,20 @@ func (c HistoryCommand) sampleCommand(
 	sampleData []byte,
 	output *recordingHistoryOutput,
 	moduleErrorWriter io.Writer,
+	reportedModuleVersions map[moduleVersion]struct{},
 ) Command {
 	cmd := Command{
-		source:             bytesSource(sampleData),
-		output:             output,
-		repo:               c.repo,
-		fallbackVersions:   c.fallbackVersions,
-		opts:               c.opts,
-		vcs:                c.vcs,
-		ageLimit:           timestamp,
-		ignoreModuleErrors: c.ignoreModuleErrors,
-		moduleErrorWriter:  moduleErrorWriter,
-		moduleErrorPrefix:  fmt.Sprintf("history sample %s", timestamp.UTC().Format(time.RFC3339)),
+		source:                 bytesSource(sampleData),
+		output:                 output,
+		repo:                   c.repo,
+		fallbackVersions:       c.fallbackVersions,
+		opts:                   c.opts,
+		vcs:                    c.vcs,
+		ageLimit:               timestamp,
+		ignoreModuleErrors:     c.ignoreModuleErrors,
+		moduleErrorWriter:      moduleErrorWriter,
+		moduleErrorPrefix:      fmt.Sprintf("history sample %s", timestamp.UTC().Format(time.RFC3339)),
+		reportedModuleVersions: reportedModuleVersions,
 	}
 	if c.moduleProgressFactory != nil {
 		cmd.progress = c.moduleProgressFactory()
