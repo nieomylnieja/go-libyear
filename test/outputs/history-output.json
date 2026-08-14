@@ -1,0 +1,18 @@
+{
+  "samples": [
+    {
+      "module": "github.com/test/test",
+      "timestamp": "2022-01-01T00:00:00Z",
+      "date": "2022-01-01",
+      "libyear": 6.098738743023846,
+      "packages": 5
+    },
+    {
+      "module": "github.com/test/test",
+      "timestamp": "2022-10-01T12:00:00Z",
+      "date": "2022-10-01",
+      "libyear": 7.755217973110097,
+      "packages": 5
+    }
+  ]
+}

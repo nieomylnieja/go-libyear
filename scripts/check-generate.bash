@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-GEN_PATHS="**/*.go **/*.yaml **/*.json"
-TMP_DIR=$(mktemp -d)
+readonly -a GEN_PATHS=("**/*.go" "**/*.yaml" "**/*.json")
+TMP_DIR="$(mktemp -d)"
+readonly TMP_DIR
 
-trap "rm -rf '$TMP_DIR'" EXIT
+cleanup_tmp() {
+  rm -rf "$TMP_DIR"
+}
+
+trap cleanup_tmp EXIT
 
 cleanup_git() {
   git -C "$TMP_DIR" clean -df
@@ -13,14 +18,16 @@ cleanup_git() {
 }
 
 main() {
+  local changed
+
   cp -r . "$TMP_DIR"
   cleanup_git
 
-  just --justfile "$TMP_DIR/justfile" --working-directory "$TMP_DIR" generate
+  just --justfile "$TMP_DIR/justfile" --working-directory "$TMP_DIR" generate-go
 
-  CHANGED=$(git -C "$TMP_DIR" status --porcelain ${GEN_PATHS})
-  if [ -n "${CHANGED}" ]; then
-    printf >&2 "There are generated changes that are not committed:\n%s\n" "$CHANGED"
+  changed="$(git -C "$TMP_DIR" status --porcelain "${GEN_PATHS[@]}")"
+  if [[ -n "$changed" ]]; then
+    printf >&2 "There are generated changes that are not committed:\n%s\n" "$changed"
     exit 1
   else
     echo "Looks good!"

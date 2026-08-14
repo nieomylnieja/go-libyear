@@ -133,12 +133,17 @@ check-generate:
     {{ scripts_dir }}/check-generate.bash
 
 # Auto generate files
-generate: generate-go
+generate: generate-go generate-history
 
 # Generate Golang code
 generate-go:
     @{{ print_step }} "Generating Golang code"
     go generate ./...
+
+# Generate the history terminal recording
+generate-history:
+    @{{ print_step }} "Generating history terminal recording"
+    vhs docs/assets/history.tape
 
 # Format files
 format: format-go format-just

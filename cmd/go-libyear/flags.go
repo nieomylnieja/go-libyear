@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	categorySource = "Source:"
-	categoryOutput = "Output:"
-	categoryCache  = "Cache:"
+	categorySource  = "Source:"
+	categoryOutput  = "Output:"
+	categoryCache   = "Cache:"
+	categoryHistory = "History:"
 )
 
 var flagToOption = map[string]golibyear.Option{
@@ -21,6 +22,14 @@ var flagToOption = map[string]golibyear.Option{
 	flagSkipFresh.Name:             golibyear.OptionSkipFresh,
 	flagReleases.Name:              golibyear.OptionShowReleases,
 	flagVersions.Name:              golibyear.OptionShowVersions,
+	flagUseGoList.Name:             golibyear.OptionUseGoList,
+	flagFindLatestMajor.Name:       golibyear.OptionFindLatestMajor,
+	flagNoLibyearCompensation.Name: golibyear.OptionNoLibyearCompensation,
+}
+
+var historyFlagToOption = map[string]golibyear.Option{
+	flagIndirect.Name:              golibyear.OptionIncludeIndirect,
+	flagSkipFresh.Name:             golibyear.OptionSkipFresh,
 	flagUseGoList.Name:             golibyear.OptionUseGoList,
 	flagFindLatestMajor.Name:       golibyear.OptionFindLatestMajor,
 	flagNoLibyearCompensation.Name: golibyear.OptionNoLibyearCompensation,
@@ -117,6 +126,35 @@ var (
 		Config: cli.TimestampConfig{
 			Layouts: []string{time.RFC3339},
 		},
+	}
+	flagHistoryFrom = &cli.TimestampFlag{
+		Name:     "from",
+		Usage:    "Start timestamp for historical samples",
+		Required: true,
+		Category: categoryHistory,
+		Config: cli.TimestampConfig{
+			Layouts: []string{time.RFC3339},
+		},
+	}
+	flagHistoryTo = &cli.TimestampFlag{
+		Name:        "to",
+		Usage:       "End timestamp for historical samples",
+		DefaultText: "now",
+		Category:    categoryHistory,
+		Config: cli.TimestampConfig{
+			Layouts: []string{time.RFC3339},
+		},
+	}
+	flagHistoryInterval = &cli.DurationFlag{
+		Name:     "interval",
+		Usage:    "Duration between historical samples",
+		Required: true,
+		Category: categoryHistory,
+	}
+	flagHistoryWidth = &cli.IntFlag{
+		Name:     "width",
+		Usage:    "Chart width in terminal columns",
+		Category: categoryHistory,
 	}
 	flagVersion = &cli.BoolFlag{
 		Name:    "version",

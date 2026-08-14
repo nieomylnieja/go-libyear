@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	pathlib "path"
@@ -11,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nieomylnieja/go-libyear/internal"
@@ -53,14 +55,18 @@ type ModuleProgress interface {
 }
 
 type Command struct {
-	source           Source
-	output           Output
-	repo             ModulesRepo
-	fallbackVersions VersionsGetter
-	opts             Option
-	vcs              *VCSRegistry
-	ageLimit         time.Time
-	progress         ModuleProgress
+	source                 Source
+	output                 Output
+	repo                   ModulesRepo
+	fallbackVersions       VersionsGetter
+	opts                   Option
+	vcs                    *VCSRegistry
+	ageLimit               time.Time
+	progress               ModuleProgress
+	ignoreModuleErrors     bool
+	moduleErrorWriter      io.Writer
+	moduleErrorPrefix      string
+	reportedModuleVersions map[moduleVersion]struct{}
 }
 
 func (c Command) Run(ctx context.Context) error {
@@ -86,20 +92,12 @@ func (c Command) Run(ctx context.Context) error {
 		progress = nil
 	}
 
+	ignoredErrors := &ignoredModuleErrors{}
 	group, _ := c.newErrGroup(ctx)
 	for _, module := range modules {
 		module := module
 		group.Go(func() error {
-			if progress != nil {
-				defer func() {
-					if moduleProgress, ok := progress.(interface{ AdvanceModule(path string) }); ok {
-						moduleProgress.AdvanceModule(module.Path)
-						return
-					}
-					progress.Advance()
-				}()
-			}
-			return c.runForModule(module)
+			return c.runModule(module, progress, ignoredErrors)
 		})
 	}
 	if err = group.Wait(); err != nil {
@@ -110,6 +108,10 @@ func (c Command) Run(ctx context.Context) error {
 	}
 	if progress != nil {
 		progress.Finish()
+	}
+	modules, err = c.removeIgnoredModules(modules, ignoredErrors.all())
+	if err != nil {
+		return err
 	}
 	// Remove skipped modules.
 	if c.optionIsSet(OptionSkipFresh) {
@@ -132,6 +134,152 @@ func (c Command) Run(ctx context.Context) error {
 	})
 }
 
+func (c Command) runModule(
+	module *internal.Module,
+	progress ModuleProgress,
+	ignoredErrors *ignoredModuleErrors,
+) error {
+	if progress != nil {
+		defer advanceModuleProgress(progress, module.Path)
+	}
+	if err := c.runForModule(module); err != nil {
+		if c.ignoreModuleErrors && isModuleMetadataError(err) {
+			ignoredErrors.add(module, err)
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func advanceModuleProgress(progress ModuleProgress, path string) {
+	if moduleProgress, ok := progress.(interface{ AdvanceModule(path string) }); ok {
+		moduleProgress.AdvanceModule(path)
+		return
+	}
+	progress.Advance()
+}
+
+func (c Command) removeIgnoredModules(
+	modules []*internal.Module,
+	ignored []ignoredModuleError,
+) ([]*internal.Module, error) {
+	if len(ignored) == 0 {
+		return modules, nil
+	}
+	ignoredPaths := make(map[string]struct{}, len(ignored))
+	for _, moduleError := range ignored {
+		ignoredPaths[moduleError.module.path] = struct{}{}
+	}
+	modules = slices.DeleteFunc(modules, func(module *internal.Module) bool {
+		_, ignored := ignoredPaths[module.Path]
+		return ignored
+	})
+	if err := c.writeIgnoredModuleErrors(ignored); err != nil {
+		return nil, err
+	}
+	return modules, nil
+}
+
+type ignoredModuleError struct {
+	module moduleVersion
+	err    error
+}
+
+type moduleVersion struct {
+	path    string
+	version string
+}
+
+type ignoredModuleErrors struct {
+	mu     sync.Mutex
+	errors []ignoredModuleError
+}
+
+type moduleMetadataError struct {
+	err error
+}
+
+func (e *moduleMetadataError) Error() string {
+	return e.err.Error()
+}
+
+func (e *moduleMetadataError) Unwrap() error {
+	return e.err
+}
+
+func wrapModuleMetadataError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if _, ok := errors.AsType[*moduleMetadataError](err); ok {
+		return err
+	}
+	return &moduleMetadataError{err: err}
+}
+
+func isModuleMetadataError(err error) bool {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	_, ok := errors.AsType[*moduleMetadataError](err)
+	return ok
+}
+
+func (e *ignoredModuleErrors) add(module *internal.Module, err error) {
+	version := ""
+	if module.Version != nil {
+		version = module.Version.String()
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.errors = append(e.errors, ignoredModuleError{
+		module: moduleVersion{path: module.Path, version: version},
+		err:    err,
+	})
+}
+
+func (e *ignoredModuleErrors) all() []ignoredModuleError {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	moduleErrors := slices.Clone(e.errors)
+	sort.Slice(moduleErrors, func(i, j int) bool {
+		if moduleErrors[i].module.path != moduleErrors[j].module.path {
+			return moduleErrors[i].module.path < moduleErrors[j].module.path
+		}
+		return moduleErrors[i].module.version < moduleErrors[j].module.version
+	})
+	return moduleErrors
+}
+
+func (c Command) writeIgnoredModuleErrors(moduleErrors []ignoredModuleError) error {
+	if c.moduleErrorWriter == nil {
+		return nil
+	}
+	for _, moduleError := range moduleErrors {
+		if _, reported := c.reportedModuleVersions[moduleError.module]; reported {
+			continue
+		}
+		prefix := "Warning"
+		if c.moduleErrorPrefix != "" {
+			prefix += ": " + c.moduleErrorPrefix
+		}
+		if _, err := fmt.Fprintf(
+			c.moduleErrorWriter,
+			"%s: ignoring module %s: %v\n",
+			prefix,
+			moduleError.module.path,
+			moduleError.err,
+		); err != nil {
+			return err
+		}
+		if c.reportedModuleVersions != nil {
+			c.reportedModuleVersions[moduleError.module] = struct{}{}
+		}
+	}
+	return nil
+}
+
 const secondsInYear = float64(365 * 24 * 60 * 60)
 
 func (c Command) runForModule(module *internal.Module) error {
@@ -145,7 +293,7 @@ func (c Command) runForModule(module *internal.Module) error {
 		var err error
 		repo, err = c.vcs.GetHandler(module.Path)
 		if err != nil {
-			return err
+			return wrapModuleMetadataError(err)
 		}
 	}
 
@@ -153,7 +301,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	if module.Time.IsZero() {
 		fetchedModule, err := repo.GetInfo(module.Path, module.Version)
 		if err != nil {
-			return err
+			return wrapModuleMetadataError(err)
 		}
 		module.Time = fetchedModule.Time
 	}
@@ -223,13 +371,13 @@ func (c Command) getAllVersions(repo ModulesRepo, latest *internal.Module) ([]*s
 func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease bool) ([]*semver.Version, error) {
 	versions, err := repo.GetVersions(path)
 	if err != nil {
-		return nil, err
+		return nil, wrapModuleMetadataError(err)
 	}
 	if len(versions) > 0 {
 		return versions, nil
 	}
 	if !isPrerelease {
-		return nil, errNoVersions
+		return nil, wrapModuleMetadataError(errNoVersions)
 	}
 	fallback := c.fallbackVersions
 	// Alternative is the fallback as na argument to the function, which makes it even more messy.
@@ -241,11 +389,11 @@ func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease 
 	// unless we're dealing with a prerelease version ourselves.
 	versions, err = fallback.GetVersions(path)
 	if err != nil {
-		return nil, err
+		return nil, wrapModuleMetadataError(err)
 	}
 	// Check again.
 	if len(versions) == 0 {
-		return nil, errNoVersions
+		return nil, wrapModuleMetadataError(errNoVersions)
 	}
 	return versions, nil
 }
@@ -263,6 +411,7 @@ func (c Command) getLatestInfo(current *internal.Module, repo ModulesRepo) (*int
 		)
 		if c.ageLimit.IsZero() {
 			lts, err = repo.GetLatestInfo(path)
+			err = wrapModuleMetadataError(err)
 		} else {
 			// If this is the first iteration, optimize findLatestBefore by passing it the current version module.
 			if latest == nil {
@@ -308,13 +457,16 @@ func (c Command) getLatestInfo(current *internal.Module, repo ModulesRepo) (*int
 func (c Command) findFirstModule(repo ModulesRepo, path string) (*internal.Module, error) {
 	versions, err := repo.GetVersions(path)
 	if err != nil {
-		return nil, err
+		return nil, wrapModuleMetadataError(err)
 	}
 	if len(versions) == 0 {
-		return nil, fmt.Errorf("no versions found for path %s, expected at least one", path)
+		return nil, wrapModuleMetadataError(
+			fmt.Errorf("no versions found for path %s, expected at least one", path),
+		)
 	}
 	sort.Sort(semver.Collection(versions))
-	return repo.GetInfo(path, versions[0])
+	module, err := repo.GetInfo(path, versions[0])
+	return module, wrapModuleMetadataError(err)
 }
 
 func updatePathVersion(path string, currentMajor, newMajor int64) string {
@@ -394,14 +546,45 @@ func (c Command) optionIsSet(option Option) bool {
 
 var errNoMatchingVersions = errors.New("no matching versions")
 
+type moduleReleasedAfterCutoffError struct {
+	path        string
+	version     *semver.Version
+	releaseTime time.Time
+	cutoff      time.Time
+}
+
+func (e *moduleReleasedAfterCutoffError) Error() string {
+	version := "<unknown>"
+	if e.version != nil {
+		version = e.version.Original()
+		if version == "" {
+			version = e.version.String()
+		}
+	}
+	return fmt.Sprintf(
+		"go.mod requires %s@%s released on %s, after cutoff %s; "+
+			"cannot calculate libyear before that version existed; "+
+			"use a cutoff on or after %s or analyze a go.mod from the requested date",
+		e.path,
+		version,
+		e.releaseTime.Format(time.DateOnly),
+		e.cutoff.Format(time.DateOnly),
+		e.releaseTime.UTC().Format(time.RFC3339),
+	)
+}
+
 // findLatestBefore uses binary search to find the latest module published before the given time.
 // It is highly recommended to use cache when calling this function.
 // current argument is optional, if it is provided, the function optimizes its search by skipping
 // every version preceding current version.
 func (c Command) findLatestBefore(repo ModulesRepo, path string, current *internal.Module) (*internal.Module, error) {
 	if current != nil && c.ageLimit.Before(current.Time) {
-		return nil, fmt.Errorf("current module release time: %s is after the before flag value: %s",
-			current.Time.Format(time.DateOnly), c.ageLimit.Format(time.DateOnly))
+		return nil, &moduleReleasedAfterCutoffError{
+			path:        path,
+			version:     current.Version,
+			releaseTime: current.Time,
+			cutoff:      c.ageLimit,
+		}
 	}
 	// Make sure we handle prerelease versions as well.
 	isPrerelease := current != nil && current.Version.Prerelease() != ""
@@ -421,7 +604,7 @@ func (c Command) findLatestBefore(repo ModulesRepo, path string, current *intern
 		mid := (start + end) / 2
 		lts, err := repo.GetInfo(path, versions[mid])
 		if err != nil {
-			return nil, err
+			return nil, wrapModuleMetadataError(err)
 		}
 		if lts.Time.After(c.ageLimit) {
 			// Investigate the lower half of the range.

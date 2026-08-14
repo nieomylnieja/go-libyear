@@ -174,6 +174,28 @@ setup() {
 	assert_output_equals all_with_age_limit
 }
 
+@test "go_proxy: history json output" {
+	create_history_repo
+	run go-libyear history --json --indirect --from 2022-01-01T00:00:00Z --to 2022-10-01T12:00:00Z --interval 8760h "$HISTORY_GO_MOD"
+	assert_success
+	assert_output_equals history-output.json
+}
+
+@test "go_proxy: history csv output" {
+	create_history_repo
+	run go-libyear history --csv --indirect --from 2022-01-01T00:00:00Z --to 2022-10-01T12:00:00Z --interval 8760h "$HISTORY_GO_MOD"
+	assert_success
+	assert_output_equals history-output.csv
+}
+
+@test "go_proxy: history chart output" {
+	create_history_repo
+	run go-libyear history --indirect --from 2022-01-01T00:00:00Z --to 2022-10-01T12:00:00Z --interval 2160h --width 60 "$HISTORY_GO_MOD"
+	assert_success
+	assert_output --partial "libyear history"
+	assert_output --partial "2022-01-01 -> 2022-10-01 | 5 samples"
+}
+
 @test "go_proxy: cache with XDG_CACHE_HOME" {
 	export XDG_CACHE_HOME="$BATS_TEST_TMPDIR"
 	run go-libyear --cache "$TEST_GO_MOD"
@@ -297,6 +319,24 @@ EOF
 	done
 }
 
+@test "error: history interval must be positive" {
+	run go-libyear history --from 2022-01-01T00:00:00Z --interval 0s "$AGE_LIMIT_GO_MOD"
+	assert_failure
+	assert_output "Error: --interval must be greater than zero"
+}
+
+@test "error: history from must not be after to" {
+	run go-libyear history --from 2022-10-02T00:00:00Z --to 2022-10-01T00:00:00Z --interval 24h "$AGE_LIMIT_GO_MOD"
+	assert_failure
+	assert_output "Error: --from must be before or equal to --to"
+}
+
+@test "error: history chart width must be supported" {
+	run go-libyear history --from 2022-01-01T00:00:00Z --interval 24h --width 39 "$AGE_LIMIT_GO_MOD"
+	assert_failure
+	assert_output "Error: --width must be at least 40"
+}
+
 @test "help flag" {
 	for alias in --help -h; do
 		run go-libyear "$alias" >&1
@@ -322,4 +362,16 @@ assert_output_equals() {
 load_lib() {
   local name="$1"
   load "/usr/lib/bats/${name}/load.bash"
+}
+
+create_history_repo() {
+	HISTORY_REPO="$BATS_TEST_TMPDIR/history-repo"
+	mkdir -p "$HISTORY_REPO"
+	git -C "$HISTORY_REPO" init --quiet
+	git -C "$HISTORY_REPO" config user.email "test@example.com"
+	git -C "$HISTORY_REPO" config user.name "go-libyear test"
+	cp "$AGE_LIMIT_GO_MOD" "$HISTORY_REPO/go.mod"
+	git -C "$HISTORY_REPO" add go.mod
+	env GIT_AUTHOR_DATE=2021-12-31T00:00:00Z GIT_COMMITTER_DATE=2021-12-31T00:00:00Z git -C "$HISTORY_REPO" commit --quiet -m "initial go.mod"
+	export HISTORY_GO_MOD="$HISTORY_REPO/go.mod"
 }

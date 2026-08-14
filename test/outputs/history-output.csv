@@ -1,0 +1,3 @@
+module,timestamp,date,libyear,packages
+github.com/test/test,2022-01-01T00:00:00Z,2022-01-01,6.10,5
+github.com/test/test,2022-10-01T12:00:00Z,2022-10-01,7.76,5
