@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -99,6 +100,11 @@ type FileSource struct {
 	Path string
 }
 
+type gitFileRevision struct {
+	commit string
+	path   string
+}
+
 func (s FileSource) Read() ([]byte, error) {
 	return os.ReadFile(s.Path)
 }
@@ -124,28 +130,58 @@ func (s FileSource) readHistory(ctx context.Context, timestamp time.Time) ([]byt
 	relPath = filepath.ToSlash(relPath)
 
 	cutoff := timestamp.UTC().Format(time.RFC3339)
-	commit, err := gitOutputString(
-		ctx,
-		repoRoot,
-		"rev-list",
-		"-1",
-		"--before="+cutoff,
-		"HEAD",
-		"--",
-		relPath,
-	)
+	revision, err := findGitFileRevision(ctx, repoRoot, relPath, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("find git revision for %s at or before %s: %w", relPath, cutoff, err)
 	}
-	if commit == "" {
+	if revision.commit == "" {
 		return nil, fmt.Errorf("no git revision found for %s at or before %s", relPath, cutoff)
 	}
 
-	data, err := gitOutput(ctx, repoRoot, "show", commit+":"+relPath)
+	data, err := gitOutput(ctx, repoRoot, "show", revision.commit+":"+revision.path)
 	if err != nil {
-		return nil, fmt.Errorf("read %s from git revision %s: %w", relPath, commit, err)
+		return nil, fmt.Errorf("read %s from git revision %s: %w", revision.path, revision.commit, err)
 	}
 	return data, nil
+}
+
+func findGitFileRevision(
+	ctx context.Context,
+	repoRoot string,
+	path string,
+	timestamp time.Time,
+) (gitFileRevision, error) {
+	data, err := gitOutput(
+		ctx,
+		repoRoot,
+		"log",
+		"-z",
+		"--follow",
+		"--first-parent",
+		"--format=%H%x00%ct",
+		"--name-only",
+		"HEAD",
+		"--",
+		path,
+	)
+	if err != nil {
+		return gitFileRevision{}, err
+	}
+
+	fields := bytes.Split(data, []byte{0})
+	cutoff := timestamp.Unix()
+	for i := 0; i+2 < len(fields); i += 3 {
+		commit := string(fields[i])
+		commitTimestamp, err := strconv.ParseInt(string(fields[i+1]), 10, 64)
+		if err != nil {
+			return gitFileRevision{}, fmt.Errorf("parse commit timestamp for %s: %w", commit, err)
+		}
+		commitPath := strings.TrimPrefix(string(fields[i+2]), "\n")
+		if commitTimestamp <= cutoff {
+			return gitFileRevision{commit: commit, path: commitPath}, nil
+		}
+	}
+	return gitFileRevision{}, nil
 }
 
 func gitOutputString(ctx context.Context, dir string, args ...string) (string, error) {

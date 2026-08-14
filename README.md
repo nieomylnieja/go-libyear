@@ -173,7 +173,8 @@ go-libyear history --from 2022-01-01T00:00:00Z --to 2024-01-01T00:00:00Z --inter
 
 For a local file path, `history` reads the committed version of that `go.mod`
 from Git at each sample timestamp.
-Samples before the file exists in the repository fail.
+It follows path renames along the first-parent history of `HEAD`.
+Samples before the file first appears in that history fail.
 
 The `--from` and `--interval` flags are required.
 The `--to` flag defaults to the current time.
@@ -188,6 +189,9 @@ The same command can emit structured data for scripts:
 go-libyear history --json --from 2022-01-01T00:00:00Z --interval 720h ./go.mod
 go-libyear history --csv --from 2022-01-01T00:00:00Z --interval 720h ./go.mod
 ```
+
+JSON and CSV include the module path in each sample.
+This keeps samples unambiguous when the `module` directive changes.
 
 When a module metadata lookup fails for one sample,
 `history` prints a warning to stderr and calculates that sample from the

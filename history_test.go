@@ -76,22 +76,23 @@ func TestHistoryStructuredOutputs(t *testing.T) {
 	assert.Equal(t, ""+
 		"module,timestamp,date,libyear,packages\n"+
 		"example.com/app,2022-01-01T00:00:00Z,2022-01-01,1.23,2\n"+
-		"example.com/app,2022-01-03T00:00:00Z,2022-01-03,2.50,1\n",
+		"example.com/app/v2,2022-01-03T00:00:00Z,2022-01-03,2.50,1\n",
 		csvOutput.String())
 
 	var jsonOutput bytes.Buffer
 	err = HistoryJSONOutput{Writer: &jsonOutput}.SendHistory(history)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{
-		"module": "example.com/app",
 		"samples": [
 			{
+				"module": "example.com/app",
 				"timestamp": "2022-01-01T00:00:00Z",
 				"date": "2022-01-01",
 				"libyear": 1.234,
 				"packages": 2
 			},
 			{
+				"module": "example.com/app/v2",
 				"timestamp": "2022-01-03T00:00:00Z",
 				"date": "2022-01-03",
 				"libyear": 2.5,
@@ -318,6 +319,111 @@ require (
 	)
 }
 
+func TestHistoryCommand_RunReportsAndIgnoresEmptyVersionMetadata(t *testing.T) {
+	source := &countingSource{content: `module example.com/app
+
+go 1.22
+
+require example.com/dep v1.0.0
+`}
+	output := &collectingHistoryOutput{}
+	warnings := &bytes.Buffer{}
+	repo := newFakeHistoryRepo()
+	repo.versions["example.com/dep"] = nil
+	from := time.Date(2022, 7, 1, 0, 0, 0, 0, time.UTC)
+	cmd, err := NewHistoryCommandBuilder(source, output).
+		WithModulesRepo(repo).
+		WithFallbackVersionsGetter(emptyVersionsGetter{}).
+		WithVCSRegistry(&VCSRegistry{}).
+		WithRange(from, from, 24*time.Hour).
+		WithIgnoredModuleErrors(warnings).
+		Build()
+	require.NoError(t, err)
+
+	err = cmd.Run(t.Context())
+
+	require.NoError(t, err)
+	require.Len(t, output.history.Samples, 1)
+	assert.Empty(t, output.history.Samples[0].Summary.Modules)
+	assert.Contains(
+		t,
+		warnings.String(),
+		"Warning: history sample 2022-07-01T00:00:00Z: "+
+			"ignoring module example.com/dep: no versions found",
+	)
+}
+
+func TestHistoryCommand_RunDoesNotIgnoreSamplesBeforeCurrentVersion(t *testing.T) {
+	source := &countingSource{content: `module example.com/app
+
+go 1.22
+
+require example.com/dep v1.0.0
+`}
+	output := &collectingHistoryOutput{}
+	warnings := &bytes.Buffer{}
+	repo := newFakeHistoryRepo()
+	from := time.Date(2021, 7, 1, 0, 0, 0, 0, time.UTC)
+	cmd, err := NewHistoryCommandBuilder(source, output).
+		WithModulesRepo(repo).
+		WithFallbackVersionsGetter(emptyVersionsGetter{}).
+		WithVCSRegistry(&VCSRegistry{}).
+		WithRange(from, from, 24*time.Hour).
+		WithIgnoredModuleErrors(warnings).
+		Build()
+	require.NoError(t, err)
+
+	err = cmd.Run(t.Context())
+
+	require.EqualError(
+		t,
+		err,
+		"history sample 2021-07-01T00:00:00Z cannot be calculated: "+
+			"go.mod requires example.com/dep@v1.0.0 released on 2022-01-01, "+
+			"after cutoff 2021-07-01; cannot calculate libyear before that version existed; "+
+			"use a cutoff on or after 2022-01-01T00:00:00Z or analyze a go.mod from the requested date",
+	)
+	assert.Empty(t, warnings.String())
+	assert.Empty(t, output.history.Samples)
+}
+
+func TestHistoryCommand_RunDoesNotIgnoreContextErrors(t *testing.T) {
+	tests := map[string]error{
+		"canceled":          context.Canceled,
+		"deadline exceeded": context.DeadlineExceeded,
+	}
+	for name, contextErr := range tests {
+		t.Run(name, func(t *testing.T) {
+			source := &countingSource{content: `module example.com/app
+
+go 1.22
+
+require example.com/dep v1.0.0
+`}
+			output := &collectingHistoryOutput{}
+			warnings := &bytes.Buffer{}
+			repo := newFakeHistoryRepo()
+			key := moduleVersionKey("example.com/dep", semver.MustParse("v1.0.0"))
+			repo.infoErrors[key] = contextErr
+			from := time.Date(2022, 7, 1, 0, 0, 0, 0, time.UTC)
+			cmd, err := NewHistoryCommandBuilder(source, output).
+				WithModulesRepo(repo).
+				WithFallbackVersionsGetter(emptyVersionsGetter{}).
+				WithVCSRegistry(&VCSRegistry{}).
+				WithRange(from, from, 24*time.Hour).
+				WithIgnoredModuleErrors(warnings).
+				Build()
+			require.NoError(t, err)
+
+			err = cmd.Run(t.Context())
+
+			require.ErrorIs(t, err, contextErr)
+			assert.Empty(t, warnings.String())
+			assert.Empty(t, output.history.Samples)
+		})
+	}
+}
+
 func TestHistoryCommand_RunReportsIgnoredModuleErrorsBeforeLaterSampleFailure(t *testing.T) {
 	from := time.Date(2022, 7, 1, 0, 0, 0, 0, time.UTC)
 	to := from.Add(24 * time.Hour)
@@ -475,7 +581,7 @@ func sampleHistory() History {
 			Timestamp: time.Date(2022, 1, 3, 0, 0, 0, 0, time.UTC),
 			Summary: Summary{
 				Main: &internal.Module{
-					Path:    "example.com/app",
+					Path:    "example.com/app/v2",
 					Libyear: 2.5,
 				},
 				Modules: []*internal.Module{

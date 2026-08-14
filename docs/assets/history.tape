@@ -1,6 +1,7 @@
 Output docs/assets/history.gif
 
 Require go
+Require git
 
 Set Shell "bash"
 Set Theme "nord"

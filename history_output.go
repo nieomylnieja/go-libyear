@@ -113,11 +113,11 @@ func (o HistoryJSONOutput) SendHistory(history History) error {
 }
 
 type historyJSONModel struct {
-	Module  string                   `json:"module"`
 	Samples []historyJSONSampleModel `json:"samples"`
 }
 
 type historyJSONSampleModel struct {
+	Module    string  `json:"module"`
 	Timestamp string  `json:"timestamp"`
 	Date      string  `json:"date"`
 	Libyear   float64 `json:"libyear"`
@@ -149,12 +149,12 @@ func convertHistoryToCSV(history History) [][]string {
 
 func convertHistoryToJSON(history History) historyJSONModel {
 	model := historyJSONModel{
-		Module:  historyModule(history),
 		Samples: make([]historyJSONSampleModel, 0, len(history.Samples)),
 	}
 	for _, sample := range history.Samples {
-		_, libyear, packages := historySampleValues(sample)
+		module, libyear, packages := historySampleValues(sample)
 		model.Samples = append(model.Samples, historyJSONSampleModel{
+			Module:    module,
 			Timestamp: sample.Timestamp.UTC().Format(time.RFC3339),
 			Date:      sample.Timestamp.UTC().Format(time.DateOnly),
 			Libyear:   libyear,
@@ -162,13 +162,6 @@ func convertHistoryToJSON(history History) historyJSONModel {
 		})
 	}
 	return model
-}
-
-func historyModule(history History) string {
-	if len(history.Samples) == 0 || history.Samples[0].Summary.Main == nil {
-		return ""
-	}
-	return history.Samples[0].Summary.Main.Path
 }
 
 func historyLibyearValues(history History) []float64 {

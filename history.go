@@ -142,7 +142,7 @@ func (b HistoryCommandBuilder) WithHistoryModuleProgress(factory func() ModulePr
 	return b
 }
 
-// WithIgnoredModuleErrors reports module calculation errors without failing history samples.
+// WithIgnoredModuleErrors reports module metadata lookup errors without failing history samples.
 func (b HistoryCommandBuilder) WithIgnoredModuleErrors(writer io.Writer) HistoryCommandBuilder {
 	b.ignoreModuleErrors = true
 	b.moduleErrorWriter = writer

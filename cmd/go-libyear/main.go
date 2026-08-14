@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -49,17 +50,20 @@ func main() {
 	}
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		os.Exit(commandExitCode(err))
 	}
 }
 
-func run(ctx context.Context, cliCmd *cli.Command) error {
+func run(ctx context.Context, cliCmd *cli.Command) (runErr error) {
 	if cliCmd.IsSet(flagVersion.Name) {
 		return nil
 	}
 
-	ctx, watch := setupContextHandling(ctx, cliCmd)
-	go watch()
+	ctx, cleanup := setupContextHandling(ctx, cliCmd)
+	defer func() {
+		runErr = commandContextError(ctx, runErr)
+		cleanup()
+	}()
 
 	stdinUsed := isStdinUsed()
 	if err := validateArgs(cliCmd, stdinUsed); err != nil {
@@ -149,9 +153,12 @@ func rootFlags() []cli.Flag {
 	}
 }
 
-func runHistory(ctx context.Context, cliCmd *cli.Command) error {
-	ctx, watch := setupContextHandling(ctx, cliCmd)
-	go watch()
+func runHistory(ctx context.Context, cliCmd *cli.Command) (runErr error) {
+	ctx, cleanup := setupContextHandling(ctx, cliCmd)
+	defer func() {
+		runErr = commandContextError(ctx, runErr)
+		cleanup()
+	}()
 
 	stdinUsed := isStdinUsed()
 	if err := validateHistoryArgs(cliCmd, stdinUsed); err != nil {
@@ -289,29 +296,100 @@ func historyChartWidth(cliCmd *cli.Command) (int, error) {
 	return width, nil
 }
 
-func setupContextHandling(ctx context.Context, cliCmd *cli.Command) (handledCtx context.Context, handler func()) {
-	errTimeout := errors.New("timeout")
+type commandTimeoutError struct {
+	timeout time.Duration
+}
+
+func (e *commandTimeoutError) Error() string {
+	return fmt.Sprintf(
+		"%s timeout exceeded, consider increasing the timeout value via --timeout flag",
+		e.timeout,
+	)
+}
+
+type commandSignalError struct {
+	signal os.Signal
+}
+
+func (e *commandSignalError) Error() string {
+	return fmt.Sprintf("%s signal detected, shutting down...", e.signal)
+}
+
+func setupContextHandling(
+	ctx context.Context,
+	cliCmd *cli.Command,
+) (handledCtx context.Context, cleanup func()) {
 	timeout := cliCmd.Duration(flagTimeout.Name)
-	handledCtx, cancel := context.WithTimeoutCause(ctx, timeout, errTimeout)
-	sigCh := make(chan os.Signal, 2)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	return handledCtx, func() {
+	return newProcessCommandContext(ctx, timeout)
+}
+
+func newProcessCommandContext(
+	ctx context.Context,
+	timeout time.Duration,
+) (handledCtx context.Context, cleanup func()) {
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+	stopSignals := sync.OnceFunc(func() {
+		signal.Stop(signalChannel)
+	})
+	return newCommandContext(ctx, timeout, signalChannel, stopSignals)
+}
+
+func newCommandContext(
+	ctx context.Context,
+	timeout time.Duration,
+	signalChannel <-chan os.Signal,
+	stopSignals func(),
+) (context.Context, context.CancelFunc) {
+	timeoutCtx, cancelTimeout := context.WithTimeoutCause(
+		ctx,
+		timeout,
+		&commandTimeoutError{timeout: timeout},
+	)
+	handledCtx, cancelCause := context.WithCancelCause(timeoutCtx)
+	go func() {
 		select {
-		case sig := <-sigCh:
-			cancel()
-			fmt.Fprintf(os.Stderr, "\r%s signal detected, shutting down...\n", sig)
-			os.Exit(0)
+		case receivedSignal := <-signalChannel:
+			stopSignals()
+			cancelCause(&commandSignalError{signal: receivedSignal})
 		case <-handledCtx.Done():
-			cause := context.Cause(handledCtx)
-			if errors.Is(cause, errTimeout) {
-				fmt.Fprintf(os.Stderr,
-					"\r%s timeout exceeded, consider increasing the timeout value via --timeout flag\n", timeout)
-			} else {
-				fmt.Fprintf(os.Stderr, "\r%s, shutting down...\n", handledCtx.Err())
-			}
-			os.Exit(1)
+			stopSignals()
 		}
+	}()
+	return handledCtx, func() {
+		stopSignals()
+		cancelCause(context.Canceled)
+		cancelTimeout()
 	}
+}
+
+func commandContextError(ctx context.Context, runErr error) error {
+	cause := context.Cause(ctx)
+	if cause == nil {
+		return runErr
+	}
+	if _, ok := errors.AsType[*commandSignalError](cause); ok {
+		return cause
+	}
+	if _, ok := errors.AsType[*commandTimeoutError](cause); ok {
+		return cause
+	}
+	if runErr == nil || errors.Is(runErr, context.Canceled) || errors.Is(runErr, context.DeadlineExceeded) {
+		return cause
+	}
+	return runErr
+}
+
+func commandExitCode(err error) int {
+	signalErr, ok := errors.AsType[*commandSignalError](err)
+	if !ok {
+		return 1
+	}
+	sig, ok := signalErr.signal.(syscall.Signal)
+	if !ok {
+		return 1
+	}
+	return 128 + int(sig)
 }
 
 func validateArgs(cliCmd *cli.Command, stdinUsed bool) error {

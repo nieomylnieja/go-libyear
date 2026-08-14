@@ -3,6 +3,7 @@ go-libyear history [flags] [path]
 Calculate and chart historical libyear samples.
 
 For a local file path, history reads the committed go.mod from Git at each sample timestamp.
+It follows path renames along the first-parent history of HEAD.
 Module metadata lookup failures are printed to stderr and ignored for that sample.
 
 The --from and --interval flags are required.
@@ -11,6 +12,7 @@ History ranges are limited to 10,000 samples.
 
 The command renders a terminal chart by default.
 Use --json or --csv to emit structured data instead.
+Both formats include the module path in each sample.
 The --width flag controls the terminal chart width and must be at least 40.
 
 Example:

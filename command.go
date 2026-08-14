@@ -142,7 +142,7 @@ func (c Command) runModule(
 		defer advanceModuleProgress(progress, module.Path)
 	}
 	if err := c.runForModule(module); err != nil {
-		if c.ignoreModuleErrors {
+		if c.ignoreModuleErrors && isModuleMetadataError(err) {
 			ignoredErrors.add(module.Path, err)
 			return nil
 		}
@@ -188,6 +188,36 @@ type ignoredModuleError struct {
 type ignoredModuleErrors struct {
 	mu     sync.Mutex
 	errors []ignoredModuleError
+}
+
+type moduleMetadataError struct {
+	err error
+}
+
+func (e *moduleMetadataError) Error() string {
+	return e.err.Error()
+}
+
+func (e *moduleMetadataError) Unwrap() error {
+	return e.err
+}
+
+func wrapModuleMetadataError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if _, ok := errors.AsType[*moduleMetadataError](err); ok {
+		return err
+	}
+	return &moduleMetadataError{err: err}
+}
+
+func isModuleMetadataError(err error) bool {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	_, ok := errors.AsType[*moduleMetadataError](err)
+	return ok
 }
 
 func (e *ignoredModuleErrors) add(path string, err error) {
@@ -241,7 +271,7 @@ func (c Command) runForModule(module *internal.Module) error {
 		var err error
 		repo, err = c.vcs.GetHandler(module.Path)
 		if err != nil {
-			return err
+			return wrapModuleMetadataError(err)
 		}
 	}
 
@@ -249,7 +279,7 @@ func (c Command) runForModule(module *internal.Module) error {
 	if module.Time.IsZero() {
 		fetchedModule, err := repo.GetInfo(module.Path, module.Version)
 		if err != nil {
-			return err
+			return wrapModuleMetadataError(err)
 		}
 		module.Time = fetchedModule.Time
 	}
@@ -319,13 +349,13 @@ func (c Command) getAllVersions(repo ModulesRepo, latest *internal.Module) ([]*s
 func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease bool) ([]*semver.Version, error) {
 	versions, err := repo.GetVersions(path)
 	if err != nil {
-		return nil, err
+		return nil, wrapModuleMetadataError(err)
 	}
 	if len(versions) > 0 {
 		return versions, nil
 	}
 	if !isPrerelease {
-		return nil, errNoVersions
+		return nil, wrapModuleMetadataError(errNoVersions)
 	}
 	fallback := c.fallbackVersions
 	// Alternative is the fallback as na argument to the function, which makes it even more messy.
@@ -337,11 +367,11 @@ func (c Command) getVersionsForPath(repo ModulesRepo, path string, isPrerelease 
 	// unless we're dealing with a prerelease version ourselves.
 	versions, err = fallback.GetVersions(path)
 	if err != nil {
-		return nil, err
+		return nil, wrapModuleMetadataError(err)
 	}
 	// Check again.
 	if len(versions) == 0 {
-		return nil, errNoVersions
+		return nil, wrapModuleMetadataError(errNoVersions)
 	}
 	return versions, nil
 }
@@ -359,6 +389,7 @@ func (c Command) getLatestInfo(current *internal.Module, repo ModulesRepo) (*int
 		)
 		if c.ageLimit.IsZero() {
 			lts, err = repo.GetLatestInfo(path)
+			err = wrapModuleMetadataError(err)
 		} else {
 			// If this is the first iteration, optimize findLatestBefore by passing it the current version module.
 			if latest == nil {
@@ -404,13 +435,16 @@ func (c Command) getLatestInfo(current *internal.Module, repo ModulesRepo) (*int
 func (c Command) findFirstModule(repo ModulesRepo, path string) (*internal.Module, error) {
 	versions, err := repo.GetVersions(path)
 	if err != nil {
-		return nil, err
+		return nil, wrapModuleMetadataError(err)
 	}
 	if len(versions) == 0 {
-		return nil, fmt.Errorf("no versions found for path %s, expected at least one", path)
+		return nil, wrapModuleMetadataError(
+			fmt.Errorf("no versions found for path %s, expected at least one", path),
+		)
 	}
 	sort.Sort(semver.Collection(versions))
-	return repo.GetInfo(path, versions[0])
+	module, err := repo.GetInfo(path, versions[0])
+	return module, wrapModuleMetadataError(err)
 }
 
 func updatePathVersion(path string, currentMajor, newMajor int64) string {
@@ -548,7 +582,7 @@ func (c Command) findLatestBefore(repo ModulesRepo, path string, current *intern
 		mid := (start + end) / 2
 		lts, err := repo.GetInfo(path, versions[mid])
 		if err != nil {
-			return nil, err
+			return nil, wrapModuleMetadataError(err)
 		}
 		if lts.Time.After(c.ageLimit) {
 			// Investigate the lower half of the range.
